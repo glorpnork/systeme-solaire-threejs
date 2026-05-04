@@ -8,7 +8,8 @@ export function createSun(scene, textures) {
   );
 
   const material = new THREE.MeshBasicMaterial({
-    map: textures.sun
+    map: textures.sun,
+  
   });
 
   const sun = new THREE.Mesh(
