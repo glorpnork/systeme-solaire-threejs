@@ -47,7 +47,7 @@ const textureLoader = new THREE.TextureLoader();
 const textures = {
   background: textureLoader.load('/textures/2k_stars_milky_way.jpg'),
 
-  sun: textureLoader.load('/textures/2k_sun.jpg'),
+  sun: textureLoader.load('/textures/8k_sun.jpg'),
   mercury: textureLoader.load('/textures/2k_mercury.jpg'),
   venus: textureLoader.load('/textures/2k_venus_surface.jpg'),
   earth: textureLoader.load('/textures/2k_earth_daymap.jpg'),
@@ -68,22 +68,23 @@ scene.background = textures.background;
 
 const sunLight = new THREE.PointLight(
   0xf4F5D2,
-  15000,   
+  20000,   
   8000   
 );
 
 sunLight.position.set(0, 0, 0);
 scene.add(sunLight);
 
-
-
+// Ambient light pour éviter que le dos des planètes soit sombre
+const ambientLight = new THREE.AmbientLight(0xf4F5D2, 0.35);
+scene.add(ambientLight);
 
 
 //Planètes
 
 const planetOrbits = [];
 
-createSun(scene, textures);
+const sun = createSun(scene, textures);
 createMercury(scene, textures, planetOrbits);
 createVenus(scene, textures, planetOrbits);
 createEarth(scene, textures, planetOrbits);
@@ -103,6 +104,9 @@ function animate(time) {
   planetOrbits.forEach(({ orbit, speed }) => {
     orbit.rotation.y = time * speed;
   });
+
+  // Rotation du soleil
+  sun.rotation.y = time * 0.0005;
 
   renderer.render(scene, camera);
 }
