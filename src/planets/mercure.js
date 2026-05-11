@@ -21,6 +21,9 @@ export function createMercury(scene, textures, planetOrbits) {
   );
 
   planet.position.x = 40;
+  planet.userData.name = 'mercure';
+  planet.userData.radius = 3;
 
   orbit.add(planet);
+  return planet;
 }

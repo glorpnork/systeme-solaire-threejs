@@ -17,6 +17,9 @@ export function createNeptune(scene, textures, planetOrbits) {
 
   const planet = new THREE.Mesh(geometry, material);
   planet.position.x = 300;
+  planet.userData.name = 'neptune';
+  planet.userData.radius = 9;
 
   orbit.add(planet);
+  return planet;
 }

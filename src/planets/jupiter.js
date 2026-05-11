@@ -17,6 +17,9 @@ export function createJupiter(scene, textures, planetOrbits) {
 
   const planet = new THREE.Mesh(geometry, material);
   planet.position.x = 150;
+  planet.userData.name = 'jupiter';
+  planet.userData.radius = 13;
 
   orbit.add(planet);
+  return planet;
 }

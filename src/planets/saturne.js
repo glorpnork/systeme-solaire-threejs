@@ -21,6 +21,8 @@ export function createSaturn(scene, textures, planetOrbits) {
   );
 
   planet.position.x = 200;
+  planet.userData.name = 'saturne';
+  planet.userData.radius = 11;
   orbit.add(planet);
 
   const ringGeometry = new THREE.RingGeometry(
@@ -43,4 +45,5 @@ export function createSaturn(scene, textures, planetOrbits) {
 
   ring.rotation.x = Math.PI / 2;
   planet.add(ring);
+  return planet;
 }

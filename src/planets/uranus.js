@@ -17,6 +17,9 @@ export function createUranus(scene, textures, planetOrbits) {
 
   const planet = new THREE.Mesh(geometry, material);
   planet.position.x = 250;
+  planet.userData.name = 'uranus';
+  planet.userData.radius = 9;
 
   orbit.add(planet);
+  return planet;
 }

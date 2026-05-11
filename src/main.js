@@ -12,6 +12,7 @@ import { createUranus } from './planets/uranus.js';
 import { createNeptune } from './planets/neptune.js';
 
 import { setupControls } from './utils/controls.js';
+import { setupInteraction } from './vr/interaction.js';
 
 const canvas = document.getElementById('three-canvas');
 
@@ -26,7 +27,6 @@ renderer.setPixelRatio(window.devicePixelRatio);
 // Activation VR
 renderer.xr.enabled = true;
 
-
 document.body.appendChild(VRButton.createButton(renderer));
 
 const scene = new THREE.Scene();
@@ -40,7 +40,7 @@ const camera = new THREE.PerspectiveCamera(
 
 camera.position.set(0, 150, 500);
 
-//Textures
+// Textures
 
 const textureLoader = new THREE.TextureLoader();
 
@@ -60,16 +60,12 @@ const textures = {
 
 scene.background = textures.background;
 
-
-
-
-
-// LUMIÈRE DU SOLEIL 
+// LUMIÈRE DU SOLEIL
 
 const sunLight = new THREE.PointLight(
   0xf4F5D2,
-  20000,   
-  8000   
+  20000,
+  8000
 );
 
 sunLight.position.set(0, 0, 0);
@@ -79,43 +75,99 @@ scene.add(sunLight);
 const ambientLight = new THREE.AmbientLight(0xf4F5D2, 0.35);
 scene.add(ambientLight);
 
-
-//Planètes
+// Planètes — on collecte les meshes pour l'interaction
 
 const planetOrbits = [];
+const planetMeshes = [];
 
 const sun = createSun(scene, textures);
-createMercury(scene, textures, planetOrbits);
-createVenus(scene, textures, planetOrbits);
-createEarth(scene, textures, planetOrbits);
-createMars(scene, textures, planetOrbits);
-createJupiter(scene, textures, planetOrbits);
-createSaturn(scene, textures, planetOrbits);
-createUranus(scene, textures, planetOrbits);
-createNeptune(scene, textures, planetOrbits);
+planetMeshes.push(sun);
+
+planetMeshes.push(createMercury(scene, textures, planetOrbits));
+planetMeshes.push(createVenus(scene, textures, planetOrbits));
+planetMeshes.push(createEarth(scene, textures, planetOrbits));
+planetMeshes.push(createMars(scene, textures, planetOrbits));
+planetMeshes.push(createJupiter(scene, textures, planetOrbits));
+planetMeshes.push(createSaturn(scene, textures, planetOrbits));
+planetMeshes.push(createUranus(scene, textures, planetOrbits));
+planetMeshes.push(createNeptune(scene, textures, planetOrbits));
 
 // Contrôles
 
-setupControls(camera, renderer);
+const { controls } = setupControls(camera, renderer);
+
+// En mode VR : désactiver OrbitControls (il interfère avec les manettes)
+// et placer la caméra à une bonne distance pour voir le système
+renderer.xr.addEventListener('sessionstart', () => {
+  controls.enabled = false;
+  // S'assurer que la caméra est à une position correcte pour la VR
+  if (camera.position.length() < 50) {
+    camera.position.set(0, 150, 500);
+  }
+});
+
+renderer.xr.addEventListener('sessionend', () => {
+  controls.enabled = true;
+  controls.target.set(0, 0, 0);
+  controls.update();
+});
+
+// État de vitesse partagé entre le slider HTML et les manettes VR
+const speedState = { multiplier: 1 };
+
+// Interaction (clic, zoom, panneau, audio, manettes VR)
+
+const interaction = setupInteraction(renderer, scene, camera, planetMeshes, controls, speedState);
+
+// Curseur de vitesse
+let simTime = 0;
+let lastTime = null;
+
+const slider = document.getElementById('speed-slider');
+const speedLabel = document.getElementById('speed-value');
+
+function updateSpeedDisplay(v) {
+  slider.value = v;
+  speedLabel.textContent = v === 0 ? 'Pause' : `×${v.toFixed(1)}`;
+}
+
+slider.addEventListener('input', () => {
+  speedState.multiplier = parseFloat(slider.value);
+  updateSpeedDisplay(speedState.multiplier);
+  interaction.notifySpeedChange(speedState.multiplier);
+});
 
 // Animation
 
-function animate(time) {
+let lastDisplayedSpeed = 1;
+
+function animate(realTime) {
+  if (lastTime !== null) {
+    simTime += (realTime - lastTime) * speedState.multiplier;
+  }
+  lastTime = realTime;
+
+  // Synchroniser le slider si la vitesse a été changée en VR
+  if (speedState.multiplier !== lastDisplayedSpeed) {
+    updateSpeedDisplay(speedState.multiplier);
+    lastDisplayedSpeed = speedState.multiplier;
+  }
+
   planetOrbits.forEach(({ orbit, speed }) => {
-    orbit.rotation.y = time * speed;
+    orbit.rotation.y = simTime * speed;
   });
 
   // Rotation du soleil
-  sun.rotation.y = time * 0.0005;
+  sun.rotation.y = simTime * 0.0005;
+
+  interaction.update();
 
   renderer.render(scene, camera);
 }
 
 renderer.setAnimationLoop(animate);
 
-
-
-//taille
+// Taille
 
 window.addEventListener('resize', () => {
   camera.aspect =

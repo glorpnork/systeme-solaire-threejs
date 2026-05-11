@@ -17,6 +17,9 @@ export function createEarth(scene, textures, planetOrbits) {
 
   const planet = new THREE.Mesh(geometry, material);
   planet.position.x = 85;
+  planet.userData.name = 'terre';
+  planet.userData.radius = 6;
 
   orbit.add(planet);
+  return planet;
 }

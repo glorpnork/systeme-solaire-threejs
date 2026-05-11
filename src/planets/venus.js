@@ -18,6 +18,9 @@ export function createVenus(scene, textures, planetOrbits) {
 
   const planet = new THREE.Mesh(geometry, material);
   planet.position.x = 60;
+  planet.userData.name = 'venus';
+  planet.userData.radius = 5;
 
   orbit.add(planet);
+  return planet;
 }

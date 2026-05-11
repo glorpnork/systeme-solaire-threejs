@@ -83,4 +83,6 @@ export function setupControls(camera, renderer) {
   }
 
   animateControls();
+
+  return { controls };
 }

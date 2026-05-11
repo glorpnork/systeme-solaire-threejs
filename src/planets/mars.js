@@ -17,6 +17,9 @@ export function createMars(scene, textures, planetOrbits) {
 
   const planet = new THREE.Mesh(geometry, material);
   planet.position.x = 110;
+  planet.userData.name = 'mars';
+  planet.userData.radius = 5;
 
   orbit.add(planet);
+  return planet;
 }

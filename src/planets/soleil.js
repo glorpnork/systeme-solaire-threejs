@@ -17,6 +17,9 @@ export function createSun(scene, textures) {
     material
   );
 
+  sun.userData.name = 'soleil';
+  sun.userData.radius = 20;
+
   scene.add(sun);
   return sun;
 }
