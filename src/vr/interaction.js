@@ -18,6 +18,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
   let focusActive = false;
   let zoomOutActive = false;
   const overviewPos = new THREE.Vector3();
+  const _trackPos = new THREE.Vector3();
   const overviewOrbitTarget = new THREE.Vector3();
   const zoomOutFrom = new THREE.Vector3();
   const zoomOutTo = new THREE.Vector3();
@@ -153,8 +154,9 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     if (renderer.xr.isPresenting) return;
     const dx = e.clientX - mouseDownX, dy = e.clientY - mouseDownY;
     if (Math.sqrt(dx * dx + dy * dy) > 5) return;
-    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     mouseRay.setFromCamera(mouse, camera);
     
     // CORRECTION : "true" permet au Raycaster de traverser l'atmosphère ou les anneaux
@@ -357,6 +359,11 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
           orbitControls.update();
         }
       }
+    }
+
+    if (focusActive && !zoomActive && !zoomOutActive && highlighted && orbitControls && orbitControls.enabled) {
+      highlighted.getWorldPosition(_trackPos);
+      orbitControls.target.copy(_trackPos);
     }
 
     infoPanel.update(camera);

@@ -66,8 +66,10 @@ export function setupControls(camera, renderer) {
   }
 
   function animateControls() {
-    updateKeyboardMovement();
-    controls.update();
+    if (controls.enabled) {
+      updateKeyboardMovement();
+      controls.update();
+    }
     requestAnimationFrame(animateControls);
   }
 
