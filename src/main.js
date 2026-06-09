@@ -40,6 +40,10 @@ const camera = new THREE.PerspectiveCamera(
 
 camera.position.set(0, 150, 500);
 
+const cameraRig = new THREE.Group();
+cameraRig.add(camera);
+scene.add(cameraRig);
+
 // Textures
 
 const textureLoader = new THREE.TextureLoader();
@@ -100,14 +104,17 @@ const { controls } = setupControls(camera, renderer);
 // et placer la caméra à une bonne distance pour voir le système
 renderer.xr.addEventListener('sessionstart', () => {
   controls.enabled = false;
-  // S'assurer que la caméra est à une position correcte pour la VR
-  if (camera.position.length() < 50) {
-    camera.position.set(0, 150, 500);
-  }
+  // Positionner le rig pour que l'utilisateur démarre avec une bonne vue
+  cameraRig.position.set(0, 150, 500);
+  cameraRig.quaternion.identity();
 });
 
 renderer.xr.addEventListener('sessionend', () => {
   controls.enabled = true;
+  // Restaurer la caméra desktop et réinitialiser le rig
+  camera.position.set(0, 150, 500);
+  cameraRig.position.set(0, 0, 0);
+  cameraRig.quaternion.identity();
   controls.target.set(0, 0, 0);
   controls.update();
 });
@@ -117,7 +124,7 @@ const speedState = { multiplier: 1 };
 
 // Interaction (clic, zoom, panneau, audio, manettes VR)
 
-const interaction = setupInteraction(renderer, scene, camera, planetMeshes, controls, speedState);
+const interaction = setupInteraction(renderer, scene, camera, cameraRig, planetMeshes, controls, speedState);
 
 // Curseur de vitesse
 let simTime = 0;

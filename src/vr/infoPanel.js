@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export function createInfoPanel(scene, renderer) {
-  // ── Panneau HTML (mode normal) ──────────────────────────────────────────
+  // Panneau HTML (mode normal)
   const el = document.createElement('div');
   el.style.cssText = `
     position: fixed;
@@ -41,7 +41,7 @@ export function createInfoPanel(scene, renderer) {
     el.style.display = 'block';
   }
 
-  // ── Panneau 3D (mode VR) ────────────────────────────────────────────────
+  // Panneau 3D (mode VR)
   const W = 512, H = 300;
   const cv = document.createElement('canvas');
   cv.width = W;

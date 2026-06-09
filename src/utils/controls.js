@@ -39,27 +39,40 @@ export function setupControls(camera, renderer) {
     keys[e.key.toLowerCase()] = false;
   });
 
+  const _fwd = new THREE.Vector3();
+  const _right = new THREE.Vector3();
+
   function updateKeyboardMovement() {
     const speed = 4;
 
-    if (keys['z']) {
-      camera.position.z -= speed;
-      controls.target.z -= speed;
+    // Vecteur "avant" : direction du regard projeté dans le plan horizontal
+    camera.getWorldDirection(_fwd);
+    _fwd.y = 0;
+    if (_fwd.lengthSq() > 0.001) _fwd.normalize();
+
+    // Vecteur "droite" : axe X local de la caméra projeté dans le plan horizontal
+    _right.set(1, 0, 0).applyQuaternion(camera.quaternion);
+    _right.y = 0;
+    if (_right.lengthSq() > 0.001) _right.normalize();
+
+    if (keys['z'] || keys['arrowup']) {
+      camera.position.addScaledVector(_fwd, speed);
+      controls.target.addScaledVector(_fwd, speed);
     }
 
-    if (keys['s']) {
-      camera.position.z += speed;
-      controls.target.z += speed;
+    if (keys['s'] || keys['arrowdown']) {
+      camera.position.addScaledVector(_fwd, -speed);
+      controls.target.addScaledVector(_fwd, -speed);
     }
 
-    if (keys['q']) {
-      camera.position.x -= speed;
-      controls.target.x -= speed;
+    if (keys['q'] || keys['arrowleft']) {
+      camera.position.addScaledVector(_right, -speed);
+      controls.target.addScaledVector(_right, -speed);
     }
 
-    if (keys['d']) {
-      camera.position.x += speed;
-      controls.target.x += speed;
+    if (keys['d'] || keys['arrowright']) {
+      camera.position.addScaledVector(_right, speed);
+      controls.target.addScaledVector(_right, speed);
     }
 
     if (keys[' ']) {

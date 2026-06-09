@@ -3,10 +3,10 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 import { PLANET_DATA } from '../data/planetData.js';
 import { createInfoPanel } from './infoPanel.js';
 
-export function setupInteraction(renderer, scene, camera, planetMeshes, orbitControls, speedState) {
+export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshes, orbitControls, speedState) {
   const infoPanel = createInfoPanel(scene, renderer);
 
-  // ── Zoom ────────────────────────────────────────────────────────────────
+  // Zoom
   let zoomActive = false;
   const zoomFrom = new THREE.Vector3();
   const zoomTo = new THREE.Vector3();
@@ -14,11 +14,11 @@ export function setupInteraction(renderer, scene, camera, planetMeshes, orbitCon
   let zoomStartTime = 0;
   const ZOOM_DURATION = 1800;
 
-  // ── Highlight ────────────────────────────────────────────────────────────
+  // Highlight
   let highlighted = null;
   const savedEmissive = new Map();
 
-  // ── Audio ────────────────────────────────────────────────────────────────
+  // Audio
   let audioCtx = null;
   function getAudioCtx() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -57,7 +57,7 @@ export function setupInteraction(renderer, scene, camera, planetMeshes, orbitCon
     window.speechSynthesis.speak(utt);
   }
 
-  // ── Highlight helpers ────────────────────────────────────────────────────
+  // Highlight helpers
   function setHighlight(mesh) {
     clearHighlight();
     highlighted = mesh;
@@ -74,7 +74,7 @@ export function setupInteraction(renderer, scene, camera, planetMeshes, orbitCon
     highlighted = null;
   }
 
-  // ── Planet selection ─────────────────────────────────────────────────────
+  // Planet selection
   function selectPlanet(mesh) {
     const data = PLANET_DATA[mesh.userData.name];
     if (!data) return;
@@ -103,7 +103,7 @@ export function setupInteraction(renderer, scene, camera, planetMeshes, orbitCon
     if (!zoomActive && orbitControls) orbitControls.enabled = true;
   }
 
-  // ── Mouse (desktop) ──────────────────────────────────────────────────────
+  // Mouse (desktop)
   const mouseRay = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
   let mouseDownX = 0, mouseDownY = 0;
@@ -121,17 +121,17 @@ export function setupInteraction(renderer, scene, camera, planetMeshes, orbitCon
   });
   window.addEventListener('keydown', e => { if (e.key === 'Escape') deselect(); });
 
-  // ── VR controllers ────────────────────────────────────────────────────────
+  // VR controllers
   const modelFactory = new XRControllerModelFactory();
   const tempMatrix = new THREE.Matrix4();
   const controllerRay = new THREE.Raycaster();
 
   for (let i = 0; i < 2; i++) {
     const controller = renderer.xr.getController(i);
-    scene.add(controller);
+    cameraRig.add(controller);
     const grip = renderer.xr.getControllerGrip(i);
     grip.add(modelFactory.createControllerModel(grip));
-    scene.add(grip);
+    cameraRig.add(grip);
 
     const lineGeo = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1)
@@ -149,7 +149,7 @@ export function setupInteraction(renderer, scene, camera, planetMeshes, orbitCon
     });
   }
 
-  // ── VR HUD vitesse ────────────────────────────────────────────────────────
+  // VR HUD vitesse
   const HW = 256, HH = 80;
   const hudCv = document.createElement('canvas');
   hudCv.width = HW; hudCv.height = HH;
@@ -191,7 +191,7 @@ export function setupInteraction(renderer, scene, camera, planetMeshes, orbitCon
   }
   drawHUD(speedState?.multiplier ?? 1);
 
-  // ── VR locomotion ─────────────────────────────────────────────────────────
+  // VR locomotion
   const MOVE_SPEED = 60; // unités/sec
   const DEADZONE = 0.15;
   const prevBtns = { a: false, b: false };
@@ -240,18 +240,28 @@ export function setupInteraction(renderer, scene, camera, planetMeshes, orbitCon
 
       if (src.handedness === 'left') {
         // Stick gauche : avancer/reculer + déplacement latéral
-        if (Math.abs(stick.x) > DEADZONE) camera.position.addScaledVector(_right, stick.x * MOVE_SPEED * dt);
-        if (Math.abs(stick.y) > DEADZONE) camera.position.addScaledVector(_fwd, -stick.y * MOVE_SPEED * dt);
+        if (Math.abs(stick.x) > DEADZONE) cameraRig.position.addScaledVector(_right, stick.x * MOVE_SPEED * dt);
+        if (Math.abs(stick.y) > DEADZONE) cameraRig.position.addScaledVector(_fwd, -stick.y * MOVE_SPEED * dt);
       }
 
       if (src.handedness === 'right') {
         // Stick droit Y : monter/descendre
-        if (Math.abs(stick.y) > DEADZONE) camera.position.y -= stick.y * MOVE_SPEED * dt;
+        if (Math.abs(stick.y) > DEADZONE) cameraRig.position.y -= stick.y * MOVE_SPEED * dt;
 
-        // Stick droit X : snap turn 30° autour de l'axe Y monde
+        // Stick droit X : snap turn 30° — pivot centré sur la tête
         if (snapCooldown === 0 && Math.abs(stick.x) > 0.6) {
-          const snapQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), stick.x > 0 ? -Math.PI / 6 : Math.PI / 6);
-          camera.quaternion.premultiply(snapQ);
+          const snapAngle = stick.x > 0 ? -Math.PI / 6 : Math.PI / 6;
+          const snapQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), snapAngle);
+
+          // Vecteur rig→tête en espace monde (plan XZ seulement)
+          const rigToHead = new THREE.Vector3().subVectors(_xrPos, cameraRig.position);
+          rigToHead.y = 0;
+          // Ce vecteur après rotation
+          const rigToHeadRotated = rigToHead.clone().applyQuaternion(snapQ);
+          // Compensation pour que la tête reste au même endroit
+          cameraRig.position.add(rigToHead).sub(rigToHeadRotated);
+
+          cameraRig.quaternion.premultiply(snapQ);
           snapCooldown = 0.35;
         }
 
@@ -284,12 +294,12 @@ export function setupInteraction(renderer, scene, camera, planetMeshes, orbitCon
     hudMesh.visible = true;
   }
 
-  // ── Éasing ───────────────────────────────────────────────────────────────
+  // Éasing
   function easeInOutQuad(t) {
     return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
   }
 
-  // ── Update par frame ──────────────────────────────────────────────────────
+  // Update par frame
   let lastT = null;
 
   function update() {
