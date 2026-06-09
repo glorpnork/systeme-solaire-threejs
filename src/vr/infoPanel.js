@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export function createInfoPanel(scene, renderer) {
-  const CW = 512, CH = 450;
+  const CW = 1024, CH = 900;
   const cv = document.createElement('canvas');
   cv.width = CW; cv.height = CH;
   const ctx = cv.getContext('2d');

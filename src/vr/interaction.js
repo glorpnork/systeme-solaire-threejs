@@ -19,6 +19,8 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
   let zoomOutActive = false;
   const overviewPos = new THREE.Vector3();
   const _trackPos = new THREE.Vector3();
+  const _prevPlanetPos = new THREE.Vector3();
+  let hasPrevPlanetPos = false;
   const overviewOrbitTarget = new THREE.Vector3();
   const zoomOutFrom = new THREE.Vector3();
   const zoomOutTo = new THREE.Vector3();
@@ -106,6 +108,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     }
     focusActive = true;
     zoomOutActive = false;
+    hasPrevPlanetPos = false;
 
     setHighlight(targetMesh);
     playClick();
@@ -361,9 +364,19 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
       }
     }
 
-    if (focusActive && !zoomActive && !zoomOutActive && highlighted && orbitControls && orbitControls.enabled) {
+    if (focusActive && !zoomActive && !zoomOutActive && highlighted) {
       highlighted.getWorldPosition(_trackPos);
-      orbitControls.target.copy(_trackPos);
+      if (hasPrevPlanetPos) {
+        const dx = _trackPos.x - _prevPlanetPos.x;
+        const dy = _trackPos.y - _prevPlanetPos.y;
+        const dz = _trackPos.z - _prevPlanetPos.z;
+        camera.position.x += dx;
+        camera.position.y += dy;
+        camera.position.z += dz;
+        if (orbitControls) orbitControls.target.copy(_trackPos);
+      }
+      _prevPlanetPos.copy(_trackPos);
+      hasPrevPlanetPos = true;
     }
 
     infoPanel.update(camera);
