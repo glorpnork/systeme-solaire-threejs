@@ -4,83 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Système Solaire</title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { overflow: hidden; background: #000; }
-      canvas { display: block; }
 
-      #speed-control {
-        position: fixed;
-        bottom: 28px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(5, 15, 40, 0.82);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(0, 200, 255, 0.25);
-        border-radius: 14px;
-        padding: 10px 22px 10px 18px;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        color: #cce4ff;
-        font-family: Arial, sans-serif;
-        font-size: 13px;
-        user-select: none;
-        z-index: 100;
-        white-space: nowrap;
-      }
+<!-- Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -->
 
-      #speed-control label {
-        opacity: 0.75;
-        letter-spacing: 0.04em;
-      }
-
-      #speed-slider {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 160px;
-        height: 4px;
-        border-radius: 2px;
-        background: rgba(0, 200, 255, 0.2);
-        outline: none;
-        cursor: pointer;
-      }
-
-      #speed-slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: #00ccff;
-        box-shadow: 0 0 6px rgba(0, 200, 255, 0.7);
-        cursor: pointer;
-        transition: box-shadow 0.15s;
-      }
-
-      #speed-slider::-webkit-slider-thumb:hover {
-        box-shadow: 0 0 10px rgba(0, 200, 255, 1);
-      }
-
-      #speed-slider::-moz-range-thumb {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        border: none;
-        background: #00ccff;
-        box-shadow: 0 0 6px rgba(0, 200, 255, 0.7);
-        cursor: pointer;
-      }
-
-      #speed-value {
-        min-width: 44px;
-        text-align: right;
-        color: #00ccff;
-        font-weight: bold;
-        font-size: 14px;
-      }
-    </style>
+  <link rel="stylesheet" href="./je_sais_pas.css">
   </head>
   <body>
     <canvas id="three-canvas"></canvas>
