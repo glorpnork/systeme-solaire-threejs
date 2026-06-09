@@ -67,6 +67,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     window.speechSynthesis.speak(utt);
   }
 
+  // Highlight helpers
   function setHighlight(mesh) {
     clearHighlight();
     highlighted = mesh;
@@ -83,9 +84,20 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     highlighted = null;
   }
 
+  // Planet selection
   function selectPlanet(mesh) {
-    const data = PLANET_DATA[mesh.userData.name];
-    if (!data) return;
+    // CORRECTION : Si on a cliqué sur un enfant (atmosphère ou anneau), on remonte au mesh principal de la planète
+    let targetMesh = mesh;
+    while (targetMesh && targetMesh.parent && !PLANET_DATA[targetMesh.name]) {
+      if (PLANET_DATA[targetMesh.parent.name]) {
+        targetMesh = targetMesh.parent;
+        break;
+      }
+      targetMesh = targetMesh.parent;
+    }
+
+    const data = PLANET_DATA[targetMesh.name];
+    if (!data) return; // Sécurité si l'objet n'a pas de correspondance de données
 
     if (!focusActive && !zoomOutActive) {
       overviewPos.copy(camera.position);
@@ -94,14 +106,14 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     focusActive = true;
     zoomOutActive = false;
 
-    setHighlight(mesh);
+    setHighlight(targetMesh);
     playClick();
     speak(data.audioText);
-    infoPanel.show(data, mesh);
+    infoPanel.show(data, targetMesh);
 
     const wp = new THREE.Vector3();
-    mesh.getWorldPosition(wp);
-    const radius = mesh.userData.radius || 10;
+    targetMesh.getWorldPosition(wp);
+    const radius = targetMesh.userData.radius || 10;
     const dir = new THREE.Vector3().subVectors(wp, camera.position).normalize();
 
     zoomFrom.copy(camera.position);
@@ -131,6 +143,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     }
   }
 
+  // Mouse (desktop)
   const mouseRay = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
   let mouseDownX = 0, mouseDownY = 0;
@@ -143,11 +156,14 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
     mouseRay.setFromCamera(mouse, camera);
-    const hits = mouseRay.intersectObjects(planetMeshes);
+    
+    // CORRECTION : "true" permet au Raycaster de traverser l'atmosphère ou les anneaux
+    const hits = mouseRay.intersectObjects(planetMeshes, true); 
     hits.length > 0 ? selectPlanet(hits[0].object) : deselect();
   });
   window.addEventListener('keydown', e => { if (e.key === 'Escape') deselect(); });
 
+  // VR controllers
   const modelFactory = new XRControllerModelFactory();
   const tempMatrix = new THREE.Matrix4();
   const controllerRay = new THREE.Raycaster();
@@ -170,11 +186,14 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
       tempMatrix.identity().extractRotation(controller.matrixWorld);
       controllerRay.ray.origin.setFromMatrixPosition(controller.matrixWorld);
       controllerRay.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-      const hits = controllerRay.intersectObjects(planetMeshes);
+      
+      // CORRECTION VR : récursivité activée également
+      const hits = controllerRay.intersectObjects(planetMeshes, true);
       hits.length > 0 ? selectPlanet(hits[0].object) : deselect();
     });
   }
 
+  // VR HUD vitesse
   const HW = 256, HH = 80;
   const hudCv = document.createElement('canvas');
   hudCv.width = HW; hudCv.height = HH;
@@ -216,6 +235,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
   }
   drawHUD(speedState?.multiplier ?? 1);
 
+  // VR locomotion
   const MOVE_SPEED = 60;
   const DEADZONE = 0.15;
   const prevBtns = { a: false, b: false };

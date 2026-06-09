@@ -17,8 +17,7 @@ export function createSoleil(scene) {
   
   scene.add(soleilMesh);
 
-  // CORRIGÉ : Intensité réduite de 50 à 8 pour éviter de brûler les textures
-  // La distance passe à 2000 et le decay (atténuation) descend à 0 pour éclairer uniformément
+  // CORRECTION : Intensité abaissée à 8 et decay à 0 pour éclairer au loin uniformément sans éblouir
   const sunLight = new THREE.PointLight(0xffffff, 8, 2000, 0.0);
   scene.add(sunLight);
 
