@@ -67,7 +67,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     window.speechSynthesis.speak(utt);
   }
 
-  // Highlight helpers
   function setHighlight(mesh) {
     clearHighlight();
     highlighted = mesh;
@@ -84,13 +83,10 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     highlighted = null;
   }
 
-  // Planet selection
   function selectPlanet(mesh) {
     const data = PLANET_DATA[mesh.userData.name];
     if (!data) return;
 
-    // Sauvegarder la position d'overview seulement au premier focus
-    // (pas lors d'un changement planète→planète ni pendant un zoom-out)
     if (!focusActive && !zoomOutActive) {
       overviewPos.copy(camera.position);
       if (orbitControls) overviewOrbitTarget.copy(orbitControls.target);
@@ -122,7 +118,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     window.speechSynthesis?.cancel();
 
     if (focusActive) {
-      // Animer le retour vers la vue d'ensemble
       zoomActive = false;
       zoomOutFrom.copy(camera.position);
       zoomOutTo.copy(overviewPos);
@@ -136,7 +131,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     }
   }
 
-  // Mouse (desktop)
   const mouseRay = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
   let mouseDownX = 0, mouseDownY = 0;
@@ -154,7 +148,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
   });
   window.addEventListener('keydown', e => { if (e.key === 'Escape') deselect(); });
 
-  // VR controllers
   const modelFactory = new XRControllerModelFactory();
   const tempMatrix = new THREE.Matrix4();
   const controllerRay = new THREE.Raycaster();
@@ -182,7 +175,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     });
   }
 
-  // VR HUD vitesse
   const HW = 256, HH = 80;
   const hudCv = document.createElement('canvas');
   hudCv.width = HW; hudCv.height = HH;
@@ -224,7 +216,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
   }
   drawHUD(speedState?.multiplier ?? 1);
 
-  // VR locomotion
   const MOVE_SPEED = 60;
   const DEADZONE = 0.15;
   const prevBtns = { a: false, b: false };
@@ -234,9 +225,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
   const _xrQuat = new THREE.Quaternion();
   let snapReady = true;
 
-  // Quest/Pico/la plupart : axes[0]=stickX, axes[1]=stickY
-  // Valve Index : axes[0/1]=touchpad, axes[2/3]=thumbstick
-  // → on garde l'axe avec la plus grande amplitude
   function readStick(axes) {
     const x0 = axes[0] ?? 0, x2 = axes[2] ?? 0;
     const y1 = axes[1] ?? 0, y3 = axes[3] ?? 0;
@@ -254,7 +242,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     xrCam.getWorldPosition(_xrPos);
     xrCam.getWorldQuaternion(_xrQuat);
 
-    // Direction de déplacement : projection horizontale du regard
     _fwd.set(0, 0, -1).applyQuaternion(_xrQuat);
     _fwd.y = 0;
     if (_fwd.lengthSq() > 0.001) _fwd.normalize();
@@ -276,7 +263,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
       if (src.handedness === 'right') {
         if (Math.abs(stick.y) > DEADZONE) cameraRig.position.y -= stick.y * MOVE_SPEED * dt;
 
-        // Snap turn : un seul snap par poussée de stick (doit revenir au centre avant de re-snap)
         if (Math.abs(stick.x) < 0.3) {
           snapReady = true;
         } else if (snapReady && Math.abs(stick.x) > 0.6) {
@@ -287,7 +273,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
           snapReady = false;
         }
 
-        // Bouton A (index 4) : vitesse +0.1  —  Bouton B (index 5) : vitesse -0.1
         const aPressed = buttons[4]?.pressed ?? false;
         const bPressed = buttons[5]?.pressed ?? false;
         if (aPressed && !prevBtns.a && speedState) {
@@ -303,7 +288,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
       }
     }
 
-    // Position du HUD : coin inférieur-droit du champ de vision
     const fwdFull = new THREE.Vector3(0, 0, -1).applyQuaternion(_xrQuat);
     const downFull = new THREE.Vector3(0, -1, 0).applyQuaternion(_xrQuat);
     const rightFull = new THREE.Vector3(1, 0, 0).applyQuaternion(_xrQuat);
@@ -315,12 +299,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     hudMesh.visible = true;
   }
 
-  // Éasing
-  function easeInOutQuad(t) {
-    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-  }
-
-  // Update par frame
   let lastT = null;
 
   function update() {
@@ -330,7 +308,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
 
     if (renderer.xr.isPresenting) {
       updateVR(dt);
-      // Sync HUD si la vitesse a changé depuis le slider HTML
       if (speedState) drawHUD(speedState.multiplier);
     } else {
       hudMesh.visible = false;
@@ -338,7 +315,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
 
     if (zoomActive) {
       const t = Math.min((now - zoomStartTime) / ZOOM_DURATION, 1);
-      camera.position.lerpVectors(zoomFrom, zoomTo, easeInOutQuad(t));
+      camera.position.lerpVectors(zoomFrom, zoomTo, t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
       if (t >= 1) {
         zoomActive = false;
         if (orbitControls) {
@@ -351,7 +328,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
 
     if (zoomOutActive) {
       const t = Math.min((now - zoomOutStartTime) / ZOOM_DURATION, 1);
-      camera.position.lerpVectors(zoomOutFrom, zoomOutTo, easeInOutQuad(t));
+      camera.position.lerpVectors(zoomOutFrom, zoomOutTo, t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
       if (t >= 1) {
         zoomOutActive = false;
         if (orbitControls) {
@@ -365,7 +342,6 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     infoPanel.update(camera);
   }
 
-  // Exposer pour sync depuis main.js (ex: mise à jour HUD quand slider change)
   function notifySpeedChange(speed) {
     drawHUD(speed);
   }
