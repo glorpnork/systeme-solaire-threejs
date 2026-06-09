@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import { createSoleil } from './planets/soleil.js';
 import { createPlanet } from './planets/planetFactory.js';
 import { setupControls } from './utils/controls.js';
@@ -11,8 +12,9 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.xr.enabled = true;
-renderer.outputColorSpace = THREE.SRGBColorSpace; 
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
+document.body.appendChild(VRButton.createButton(renderer));
 
 const cameraRig = new THREE.Group();
 cameraRig.add(camera);

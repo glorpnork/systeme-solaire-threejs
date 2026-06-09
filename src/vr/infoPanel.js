@@ -59,67 +59,67 @@ export function createInfoPanel(scene, renderer) {
 
     // Fond sombre
     ctx.fillStyle = 'rgba(3, 10, 32, 0.96)';
-    roundRect(3, 3, CW - 6, CH - 6, 14);
+    roundRect(6, 6, CW - 12, CH - 12, 28);
     ctx.fill();
 
     // Halo extérieur
     ctx.strokeStyle = 'rgba(0, 200, 255, 0.18)';
-    ctx.lineWidth = 10;
-    roundRect(3, 3, CW - 6, CH - 6, 14);
+    ctx.lineWidth = 20;
+    roundRect(6, 6, CW - 12, CH - 12, 28);
     ctx.stroke();
 
     // Bordure cyan nette
     ctx.strokeStyle = '#00ccff';
-    ctx.lineWidth = 2;
-    roundRect(3, 3, CW - 6, CH - 6, 14);
+    ctx.lineWidth = 4;
+    roundRect(6, 6, CW - 12, CH - 12, 28);
     ctx.stroke();
 
     // Titre
     ctx.fillStyle = '#00d4ff';
-    ctx.font = 'bold 40px Arial';
+    ctx.font = 'bold 80px Arial';
     ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(0, 200, 255, 0.6)';
-    ctx.shadowBlur = 12;
-    ctx.fillText(data.title, CW / 2, 54);
+    ctx.shadowBlur = 24;
+    ctx.fillText(data.title, CW / 2, 108);
     ctx.shadowBlur = 0;
 
     // Séparateur
     ctx.strokeStyle = 'rgba(0, 200, 255, 0.35)';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(24, 70);
-    ctx.lineTo(CW - 24, 70);
+    ctx.moveTo(48, 140);
+    ctx.lineTo(CW - 48, 140);
     ctx.stroke();
 
     // Faits
     const lines = (data.text || '').split('\n').filter(Boolean);
     ctx.fillStyle = '#c8dff5';
-    ctx.font = '20px Arial';
+    ctx.font = '40px Arial';
     ctx.textAlign = 'left';
-    const factLineH = 34;
+    const factLineH = 68;
     lines.forEach((line, i) => {
-      ctx.fillText('• ' + line, 26, 104 + i * factLineH);
+      ctx.fillText('• ' + line, 52, 208 + i * factLineH);
     });
 
-    const factsBottom = 104 + lines.length * factLineH + 10;
+    const factsBottom = 208 + lines.length * factLineH + 20;
 
     // Séparateur audioText
     ctx.strokeStyle = 'rgba(0, 200, 255, 0.25)';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(24, factsBottom);
-    ctx.lineTo(CW - 24, factsBottom);
+    ctx.moveTo(48, factsBottom);
+    ctx.lineTo(CW - 48, factsBottom);
     ctx.stroke();
 
     // audioText
     if (data.audioText) {
-      const audioFont = 'italic 16px Arial';
-      const wrappedAudio = wrapText(data.audioText, CW - 52, audioFont);
+      const audioFont = 'italic 32px Arial';
+      const wrappedAudio = wrapText(data.audioText, CW - 104, audioFont);
       ctx.font = audioFont;
       ctx.fillStyle = 'rgba(180, 210, 240, 0.82)';
       ctx.textAlign = 'left';
       wrappedAudio.forEach((line, i) => {
-        ctx.fillText(line, 26, factsBottom + 22 + i * 22);
+        ctx.fillText(line, 52, factsBottom + 44 + i * 44);
       });
     }
 

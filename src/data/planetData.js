@@ -3,14 +3,14 @@ export const planetsData = [
     name: "Mercure",
     size: 1.2,
     distance: 28,
-    speed: 0.2, // Multiplié par 5
+    speed: 0.07,
     texture: "textures/2k_mercury.jpg"
   },
   {
     name: "Venus",
     size: 2.5,
     distance: 44,
-    speed: 0.075, // Multiplié par 5
+    speed: 0.025,
     texture: "textures/2k_venus_surface.jpg",
     atmosphereTexture: "textures/2k_venus_atmosphere.jpg"
   },
@@ -18,7 +18,7 @@ export const planetsData = [
     name: "Terre",
     size: 3,
     distance: 62,
-    speed: 0.05, // Multiplié par 5
+    speed: 0.018,
     texture: "textures/2k_earth_daymap.jpg"
   },
   {
