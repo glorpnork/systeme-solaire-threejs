@@ -5,8 +5,7 @@
       #speed-control {
         position: fixed;
         bottom: 28px;
-        left: 50%;
-        transform: translateX(-50%);
+        left: 28px;
         background: rgba(5, 15, 40, 0.82);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);

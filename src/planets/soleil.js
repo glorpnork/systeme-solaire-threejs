@@ -1,25 +1,25 @@
 import * as THREE from 'three';
 
-export function createSun(scene, textures) {
-  const geometry = new THREE.SphereGeometry(
-    20,
-    64,
-    64
-  );
+export function createSoleil(scene) {
+  const textureLoader = new THREE.TextureLoader();
+  const soleilTexture = textureLoader.load('textures/8k_sun.jpg');
+  soleilTexture.colorSpace = THREE.SRGBColorSpace;
 
-  const material = new THREE.MeshBasicMaterial({
-    map: textures.sun,
+  // Augmentation des segments (64, 64) pour une sphère parfaitement lisse
+  const geometry = new THREE.SphereGeometry(16, 64, 64);
+  const material = new THREE.MeshBasicMaterial({ map: soleilTexture });
+  const soleilMesh = new THREE.Mesh(geometry, material);
   
-  });
+  soleilMesh.name = "Soleil";
+  soleilMesh.userData = {
+    info: "Le Soleil est l'étoile centrale de notre système solaire, représentant 99,8% de sa masse totale."
+  };
+  
+  scene.add(soleilMesh);
 
-  const sun = new THREE.Mesh(
-    geometry,
-    material
-  );
+  // Source de lumière au centre du soleil pour éclairer les surfaces des planètes
+  const sunLight = new THREE.PointLight(0xffffff, 3, 500, 0.5);
+  scene.add(sunLight);
 
-  sun.userData.name = 'soleil';
-  sun.userData.radius = 20;
-
-  scene.add(sun);
-  return sun;
+  return soleilMesh;
 }
