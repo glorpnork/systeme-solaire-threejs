@@ -129,10 +129,16 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     camera.getWorldPosition(_camWorld);
     _focusDistance = radius * 4 + 5;
 
-    // Desktop : approche côté soleil (soleil à l'origine → direction planète→soleil = -normalize(wp))
-    _sunDir.copy(wp).negate().normalize();
     zoomFrom.copy(_camWorld);
-    zoomTo.copy(wp).addScaledVector(_sunDir, _focusDistance);
+    // Pour le soleil (wp ≈ origine) on garde la direction courante ; pour les planètes on approche côté soleil
+    if (wp.lengthSq() > 1) {
+      _sunDir.copy(wp).negate().normalize();
+      zoomTo.copy(wp).addScaledVector(_sunDir, _focusDistance);
+    } else {
+      // Soleil : approcher depuis la position courante de la caméra
+      _sunDir.copy(wp).sub(_camWorld).normalize();
+      zoomTo.copy(wp).sub(_sunDir.multiplyScalar(_focusDistance));
+    }
     zoomPlanetPos.copy(wp);
 
     // VR : déplace le rig pour que la tête arrive à zoomTo
@@ -266,6 +272,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
   const VERT_SPEED = 15;
   const TURN_SPEED = Math.PI * 0.7; // rad/s — rotation analogique lisse
   const DEADZONE = 0.15;
+  const TURN_DEADZONE = 0.40;
   const prevBtns = { a: false, b: false };
   const _fwd = new THREE.Vector3();
   const _right = new THREE.Vector3();
@@ -320,8 +327,8 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
         const sy = applyDeadzone(stick.y);
         if (sy !== 0) cameraRig.position.y -= sy * VERT_SPEED * dt;
 
-        // Rotation lisse et analogique (pas de snap)
-        const sx = applyDeadzone(stick.x);
+        // Rotation lisse — deadzone plus élevé pour éviter les déclenchements accidentels
+        const sx = Math.abs(stick.x) > TURN_DEADZONE ? stick.x : 0;
         if (sx !== 0) {
           _turnQ.setFromAxisAngle(_yAxis, -sx * TURN_SPEED * dt);
           cameraRig.quaternion.premultiply(_turnQ);
@@ -412,9 +419,11 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
       if (inVR) {
         cameraRig.position.addVectors(_trackPos, vrRigOffset);
       } else {
-        // Reste côté soleil et regarde la planète
-        _sunDir.copy(_trackPos).negate().normalize();
-        camera.position.copy(_trackPos).addScaledVector(_sunDir, _focusDistance);
+        // Reste côté soleil et regarde la planète (si soleil, garde offset fixe)
+        if (_trackPos.lengthSq() > 1) {
+          _sunDir.copy(_trackPos).negate().normalize();
+          camera.position.copy(_trackPos).addScaledVector(_sunDir, _focusDistance);
+        }
         camera.lookAt(_trackPos);
       }
     }
