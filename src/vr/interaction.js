@@ -22,9 +22,10 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
   const overviewPos = new THREE.Vector3();           // desktop: camera pos overview
   const vrOverviewRigPos = new THREE.Vector3();      // VR: rig pos overview
   const _trackPos = new THREE.Vector3();
-  const _cameraOffset = new THREE.Vector3();         // desktop: camera - planet
   const vrRigOffset = new THREE.Vector3();           // VR: rig - planet
   const _camWorld = new THREE.Vector3();
+  const _sunDir = new THREE.Vector3();
+  let _focusDistance = 10;
   const overviewOrbitTarget = new THREE.Vector3();
   const zoomOutFrom = new THREE.Vector3();
   const zoomOutTo = new THREE.Vector3();
@@ -125,12 +126,13 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     targetMesh.getWorldPosition(wp);
     const radius = targetMesh.userData.radius || 10;
 
-    // Utilise la position monde réelle de la caméra (head tracking en VR inclus)
     camera.getWorldPosition(_camWorld);
-    const dir = new THREE.Vector3().subVectors(wp, _camWorld).normalize();
+    _focusDistance = radius * 4 + 5;
 
+    // Desktop : approche côté soleil (soleil à l'origine → direction planète→soleil = -normalize(wp))
+    _sunDir.copy(wp).negate().normalize();
     zoomFrom.copy(_camWorld);
-    zoomTo.copy(wp).sub(dir.multiplyScalar(radius * 4 + 5));
+    zoomTo.copy(wp).addScaledVector(_sunDir, _focusDistance);
     zoomPlanetPos.copy(wp);
 
     // VR : déplace le rig pour que la tête arrive à zoomTo
@@ -382,7 +384,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
           if (inVR) {
             vrRigOffset.copy(cameraRig.position).sub(_trackPos);
           } else {
-            _cameraOffset.copy(camera.position).sub(_trackPos);
+            camera.lookAt(_trackPos);
           }
         }
       }
@@ -410,7 +412,10 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
       if (inVR) {
         cameraRig.position.addVectors(_trackPos, vrRigOffset);
       } else {
-        camera.position.addVectors(_trackPos, _cameraOffset);
+        // Reste côté soleil et regarde la planète
+        _sunDir.copy(_trackPos).negate().normalize();
+        camera.position.copy(_trackPos).addScaledVector(_sunDir, _focusDistance);
+        camera.lookAt(_trackPos);
       }
     }
 
