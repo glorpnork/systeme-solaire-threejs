@@ -8,22 +8,28 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
 
   // Zoom
   let zoomActive = false;
-  const zoomFrom = new THREE.Vector3();
-  const zoomTo = new THREE.Vector3();
+  const zoomFrom = new THREE.Vector3();       // desktop: camera world pos start
+  const zoomTo = new THREE.Vector3();         // world pos cible (near planet)
   const zoomPlanetPos = new THREE.Vector3();
+  const vrZoomFromRig = new THREE.Vector3();  // VR: rig start
+  const vrZoomToRig = new THREE.Vector3();    // VR: rig cible
   let zoomStartTime = 0;
   const ZOOM_DURATION = 1800;
 
   // Zoom-out (retour vue d'ensemble)
   let focusActive = false;
   let zoomOutActive = false;
-  const overviewPos = new THREE.Vector3();
+  const overviewPos = new THREE.Vector3();           // desktop: camera pos overview
+  const vrOverviewRigPos = new THREE.Vector3();      // VR: rig pos overview
   const _trackPos = new THREE.Vector3();
-  const _prevPlanetPos = new THREE.Vector3();
-  let hasPrevPlanetPos = false;
+  const _cameraOffset = new THREE.Vector3();         // desktop: camera - planet
+  const vrRigOffset = new THREE.Vector3();           // VR: rig - planet
+  const _camWorld = new THREE.Vector3();
   const overviewOrbitTarget = new THREE.Vector3();
   const zoomOutFrom = new THREE.Vector3();
   const zoomOutTo = new THREE.Vector3();
+  const vrZoomOutFromRig = new THREE.Vector3();
+  const vrZoomOutToRig = new THREE.Vector3();
   const zoomOutOrbitTarget = new THREE.Vector3();
   let zoomOutStartTime = 0;
 
@@ -103,12 +109,12 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     if (!data) return; // Sécurité si l'objet n'a pas de correspondance de données
 
     if (!focusActive && !zoomOutActive) {
-      overviewPos.copy(camera.position);
+      overviewPos.copy(camera.position);          // desktop
+      vrOverviewRigPos.copy(cameraRig.position);  // VR
       if (orbitControls) overviewOrbitTarget.copy(orbitControls.target);
     }
     focusActive = true;
     zoomOutActive = false;
-    hasPrevPlanetPos = false;
 
     setHighlight(targetMesh);
     playClick();
@@ -118,11 +124,19 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     const wp = new THREE.Vector3();
     targetMesh.getWorldPosition(wp);
     const radius = targetMesh.userData.radius || 10;
-    const dir = new THREE.Vector3().subVectors(wp, camera.position).normalize();
 
-    zoomFrom.copy(camera.position);
+    // Utilise la position monde réelle de la caméra (head tracking en VR inclus)
+    camera.getWorldPosition(_camWorld);
+    const dir = new THREE.Vector3().subVectors(wp, _camWorld).normalize();
+
+    zoomFrom.copy(_camWorld);
     zoomTo.copy(wp).sub(dir.multiplyScalar(radius * 4 + 5));
     zoomPlanetPos.copy(wp);
+
+    // VR : déplace le rig pour que la tête arrive à zoomTo
+    vrZoomFromRig.copy(cameraRig.position);
+    vrZoomToRig.copy(cameraRig.position).add(zoomTo).sub(_camWorld);
+
     zoomStartTime = performance.now();
     zoomActive = true;
     if (orbitControls) orbitControls.enabled = false;
@@ -135,8 +149,13 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
 
     if (focusActive) {
       zoomActive = false;
+      // Desktop
       zoomOutFrom.copy(camera.position);
       zoomOutTo.copy(overviewPos);
+      // VR
+      vrZoomOutFromRig.copy(cameraRig.position);
+      vrZoomOutToRig.copy(vrOverviewRigPos);
+
       zoomOutOrbitTarget.copy(overviewOrbitTarget);
       zoomOutStartTime = performance.now();
       zoomOutActive = true;
@@ -242,13 +261,16 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
 
   // VR locomotion
   const MOVE_SPEED = 60;
+  const VERT_SPEED = 15;
+  const TURN_SPEED = Math.PI * 0.7; // rad/s — rotation analogique lisse
   const DEADZONE = 0.15;
   const prevBtns = { a: false, b: false };
   const _fwd = new THREE.Vector3();
   const _right = new THREE.Vector3();
   const _xrPos = new THREE.Vector3();
   const _xrQuat = new THREE.Quaternion();
-  let snapReady = true;
+  const _yAxis = new THREE.Vector3(0, 1, 0);
+  const _turnQ = new THREE.Quaternion();
 
   function readStick(axes) {
     const x0 = axes[0] ?? 0, x2 = axes[2] ?? 0;
@@ -259,14 +281,19 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     };
   }
 
+  function applyDeadzone(v) {
+    return Math.abs(v) > DEADZONE ? v : 0;
+  }
+
   function updateVR(dt) {
     const session = renderer.xr.getSession();
     if (!session) return;
 
-    const xrCam = renderer.xr.getCamera();
-    xrCam.getWorldPosition(_xrPos);
-    xrCam.getWorldQuaternion(_xrQuat);
+    // camera est dans cameraRig → getWorld* remonte correctement dans la hiérarchie
+    camera.getWorldPosition(_xrPos);
+    camera.getWorldQuaternion(_xrQuat);
 
+    // Vecteurs de déplacement dans le plan horizontal, relatifs à la tête
     _fwd.set(0, 0, -1).applyQuaternion(_xrQuat);
     _fwd.y = 0;
     if (_fwd.lengthSq() > 0.001) _fwd.normalize();
@@ -281,21 +308,21 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
       const stick = readStick(axes);
 
       if (src.handedness === 'left') {
-        if (Math.abs(stick.x) > DEADZONE) cameraRig.position.addScaledVector(_right, stick.x * MOVE_SPEED * dt);
-        if (Math.abs(stick.y) > DEADZONE) cameraRig.position.addScaledVector(_fwd, -stick.y * MOVE_SPEED * dt);
+        const sx = applyDeadzone(stick.x);
+        const sy = applyDeadzone(stick.y);
+        if (sx !== 0) cameraRig.position.addScaledVector(_right, sx * MOVE_SPEED * dt);
+        if (sy !== 0) cameraRig.position.addScaledVector(_fwd, -sy * MOVE_SPEED * dt);
       }
 
       if (src.handedness === 'right') {
-        if (Math.abs(stick.y) > DEADZONE) cameraRig.position.y -= stick.y * MOVE_SPEED * dt;
+        const sy = applyDeadzone(stick.y);
+        if (sy !== 0) cameraRig.position.y -= sy * VERT_SPEED * dt;
 
-        if (Math.abs(stick.x) < 0.3) {
-          snapReady = true;
-        } else if (snapReady && Math.abs(stick.x) > 0.6) {
-          const angle = stick.x > 0 ? -Math.PI / 6 : Math.PI / 6;
-          cameraRig.quaternion.premultiply(
-            new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle)
-          );
-          snapReady = false;
+        // Rotation lisse et analogique (pas de snap)
+        const sx = applyDeadzone(stick.x);
+        if (sx !== 0) {
+          _turnQ.setFromAxisAngle(_yAxis, -sx * TURN_SPEED * dt);
+          cameraRig.quaternion.premultiply(_turnQ);
         }
 
         const aPressed = buttons[4]?.pressed ?? false;
@@ -338,25 +365,39 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
       hudMesh.visible = false;
     }
 
+    const inVR = renderer.xr.isPresenting;
+    const ease = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
     if (zoomActive) {
       const t = Math.min((now - zoomStartTime) / ZOOM_DURATION, 1);
-      camera.position.lerpVectors(zoomFrom, zoomTo, t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
+      if (inVR) {
+        cameraRig.position.lerpVectors(vrZoomFromRig, vrZoomToRig, ease(t));
+      } else {
+        camera.position.lerpVectors(zoomFrom, zoomTo, ease(t));
+      }
       if (t >= 1) {
         zoomActive = false;
-        if (orbitControls) {
-          orbitControls.target.copy(zoomPlanetPos);
-          orbitControls.enabled = true;
-          orbitControls.update();
+        if (highlighted) {
+          highlighted.getWorldPosition(_trackPos);
+          if (inVR) {
+            vrRigOffset.copy(cameraRig.position).sub(_trackPos);
+          } else {
+            _cameraOffset.copy(camera.position).sub(_trackPos);
+          }
         }
       }
     }
 
     if (zoomOutActive) {
       const t = Math.min((now - zoomOutStartTime) / ZOOM_DURATION, 1);
-      camera.position.lerpVectors(zoomOutFrom, zoomOutTo, t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
+      if (inVR) {
+        cameraRig.position.lerpVectors(vrZoomOutFromRig, vrZoomOutToRig, ease(t));
+      } else {
+        camera.position.lerpVectors(zoomOutFrom, zoomOutTo, ease(t));
+      }
       if (t >= 1) {
         zoomOutActive = false;
-        if (orbitControls) {
+        if (!inVR && orbitControls) {
           orbitControls.target.copy(zoomOutOrbitTarget);
           orbitControls.enabled = true;
           orbitControls.update();
@@ -366,17 +407,11 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
 
     if (focusActive && !zoomActive && !zoomOutActive && highlighted) {
       highlighted.getWorldPosition(_trackPos);
-      if (hasPrevPlanetPos) {
-        const dx = _trackPos.x - _prevPlanetPos.x;
-        const dy = _trackPos.y - _prevPlanetPos.y;
-        const dz = _trackPos.z - _prevPlanetPos.z;
-        camera.position.x += dx;
-        camera.position.y += dy;
-        camera.position.z += dz;
-        if (orbitControls) orbitControls.target.copy(_trackPos);
+      if (inVR) {
+        cameraRig.position.addVectors(_trackPos, vrRigOffset);
+      } else {
+        camera.position.addVectors(_trackPos, _cameraOffset);
       }
-      _prevPlanetPos.copy(_trackPos);
-      hasPrevPlanetPos = true;
     }
 
     infoPanel.update(camera);

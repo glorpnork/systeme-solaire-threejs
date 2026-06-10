@@ -128,6 +128,8 @@ export function createInfoPanel(scene, renderer) {
 
   const _wp = new THREE.Vector3();
   const _right = new THREE.Vector3();
+  const _camWorld = new THREE.Vector3();
+  const _camQuat = new THREE.Quaternion();
 
   return {
     show: (data, mesh) => {
@@ -143,17 +145,17 @@ export function createInfoPanel(scene, renderer) {
       if (!panel.visible || !currentMesh) return;
 
       currentMesh.getWorldPosition(_wp);
-      const radius = currentMesh.userData.radius || 3;
+      camera.getWorldPosition(_camWorld);
+      camera.getWorldQuaternion(_camQuat);
 
-      // Taille du panneau proportionnelle à la distance de zoom
+      const radius = currentMesh.userData.radius || 3;
       const pw = radius * 2 + 4;
 
-      // Axe droit de la caméra pour positionner le panneau à côté
-      _right.set(1, 0, 0).applyQuaternion(camera.quaternion);
+      _right.set(1, 0, 0).applyQuaternion(_camQuat);
 
       panel.position.copy(_wp).addScaledVector(_right, radius * 1.5 + pw * 0.55);
       panel.scale.setScalar(pw);
-      panel.lookAt(camera.position);
+      panel.lookAt(_camWorld);
     }
   };
 }

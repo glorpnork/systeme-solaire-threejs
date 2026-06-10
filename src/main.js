@@ -61,6 +61,9 @@ renderer.setAnimationLoop(() => {
   planeteObjects.forEach(planete => {
     planete.pivot.rotation.y += planete.speed * currentSpeedMultiplier;
     planete.mesh.rotation.y += 0.01 * currentSpeedMultiplier;
+    planete.moons.forEach(moon => {
+      moon.pivot.rotation.y += moon.speed * currentSpeedMultiplier;
+    });
   });
 
   if (interaction) {

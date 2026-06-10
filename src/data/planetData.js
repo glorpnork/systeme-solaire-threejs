@@ -19,43 +19,69 @@ export const planetsData = [
     size: 3,
     distance: 62,
     speed: 0.018,
-    texture: "textures/2k_earth_daymap.jpg"
+    texture: "textures/2k_earth_daymap.jpg",
+    moons: [
+      { name: "Lune", radius: 0.72, distance: 6.5, speed: 0.12, texture: "textures/2k_moon.jpg", tilt: 0.09 }
+    ]
   },
   {
     name: "Mars",
     size: 1.8,
     distance: 78,
-    speed: 0.04, // Multiplié par 5
-    texture: "textures/2k_mars.jpg"
+    speed: 0.04,
+    texture: "textures/2k_mars.jpg",
+    moons: [
+      { name: "Phobos",  radius: 0.18, distance: 3.2, speed: 0.55, color: 0x8a7a6a, tilt: 0.02 },
+      { name: "Déimos",  radius: 0.13, distance: 5.0, speed: 0.22, color: 0x9a8a7a, tilt: 0.05 }
+    ]
   },
   {
     name: "Jupiter",
     size: 8,
     distance: 110,
-    speed: 0.01, // Multiplié par 5
-    texture: "textures/2k_jupiter.jpg"
+    speed: 0.01,
+    texture: "textures/2k_jupiter.jpg",
+    moons: [
+      { name: "Io",       radius: 0.38, distance: 13,  speed: 0.30, color: 0xe8c040, tilt: 0.00 },
+      { name: "Europe",   radius: 0.32, distance: 17,  speed: 0.20, color: 0xd0c8b8, tilt: 0.01 },
+      { name: "Ganymède", radius: 0.50, distance: 22,  speed: 0.13, color: 0xb0a080, tilt: 0.01 },
+      { name: "Callisto", radius: 0.45, distance: 29,  speed: 0.08, color: 0x706050, tilt: 0.03 }
+    ]
   },
   {
     name: "Saturne",
     size: 6.5,
     distance: 150,
-    speed: 0.0045, // Multiplié par 5
+    speed: 0.0045,
     texture: "textures/2k_saturn.jpg",
-    ringTexture: "textures/2k_saturn_ring_alpha.png"
+    ringTexture: "textures/2k_saturn_ring_alpha.png",
+    moons: [
+      { name: "Encelade", radius: 0.20, distance: 11,  speed: 0.28, color: 0xf0f0f8, tilt: 0.00 },
+      { name: "Titan",    radius: 0.48, distance: 16,  speed: 0.14, color: 0xd09040, tilt: 0.03 },
+      { name: "Rhéa",     radius: 0.24, distance: 21,  speed: 0.08, color: 0xc0b8b0, tilt: 0.01 }
+    ]
   },
   {
     name: "Uranus",
     size: 4.5,
     distance: 190,
-    speed: 0.002, // Multiplié par 5
-    texture: "textures/2k_uranus.jpg"
+    speed: 0.002,
+    texture: "textures/2k_uranus.jpg",
+    moons: [
+      { name: "Miranda", radius: 0.18, distance: 7.5,  speed: 0.32, color: 0xa0a0b0, tilt: 1.51 },
+      { name: "Ariel",   radius: 0.24, distance: 10,   speed: 0.22, color: 0xb8b8c8, tilt: 1.51 },
+      { name: "Titania", radius: 0.28, distance: 14,   speed: 0.12, color: 0xa8a0a0, tilt: 1.51 }
+    ]
   },
   {
     name: "Neptune",
     size: 4.3,
     distance: 230,
-    speed: 0.0005, // Multiplié par 5
-    texture: "textures/2k_neptune.jpg"
+    speed: 0.0005,
+    texture: "textures/2k_neptune.jpg",
+    moons: [
+      { name: "Triton", radius: 0.35, distance: 9, speed: -0.18, color: 0x8898b8, tilt: 2.75 }
+    ]
   }
 ];
 

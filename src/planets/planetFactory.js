@@ -72,5 +72,32 @@ export function createPlanet(scene, data) {
     mesh.add(ringMesh);
   }
 
-  return { pivot, mesh, speed: data.speed };
+  // Lunes
+  const moons = [];
+  if (data.moons) {
+    for (const moonData of data.moons) {
+      const moonPivot = new THREE.Object3D();
+      moonPivot.rotation.z = moonData.tilt ?? 0;
+      mesh.add(moonPivot);
+
+      let moonMat;
+      if (moonData.texture) {
+        const moonTex = textureLoader.load(moonData.texture);
+        moonTex.colorSpace = THREE.SRGBColorSpace;
+        moonMat = new THREE.MeshStandardMaterial({ map: moonTex, roughness: 0.9, metalness: 0.0 });
+      } else {
+        moonMat = new THREE.MeshStandardMaterial({ color: moonData.color ?? 0xaaaaaa, roughness: 0.9, metalness: 0.0 });
+      }
+
+      const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(moonData.radius, 32, 32), moonMat);
+      moonMesh.position.x = moonData.distance;
+      moonMesh.name = moonData.name;
+      moonMesh.userData = { name: moonData.name, radius: moonData.radius };
+      moonPivot.add(moonMesh);
+
+      moons.push({ pivot: moonPivot, speed: moonData.speed });
+    }
+  }
+
+  return { pivot, mesh, speed: data.speed, moons };
 }
