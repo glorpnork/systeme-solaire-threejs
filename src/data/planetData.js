@@ -1,10 +1,12 @@
+// Tableau exporté décrivant les paramètres 3D/orbitaux de chaque planète,
+// utilisé par planetFactory.js pour générer les meshes et par main.js pour l'animation
 export const planetsData = [
   {
     name: "Mercure",
-    size: 1.2,
-    distance: 28,
-    speed: 0.07,
-    texture: "textures/2k_mercury.jpg"
+    size: 1.2,        // rayon de la sphère 3D
+    distance: 28,      // distance au Soleil (rayon de l'orbite)
+    speed: 0.07,        // vitesse de révolution autour du Soleil (radians/frame)
+    texture: "textures/2k_mercury.jpg"  // image appliquée sur la sphère
   },
   {
     name: "Venus",
@@ -12,7 +14,7 @@ export const planetsData = [
     distance: 44,
     speed: 0.025,
     texture: "textures/2k_venus_surface.jpg",
-    atmosphereTexture: "textures/2k_venus_atmosphere.jpg"
+    atmosphereTexture: "textures/2k_venus_atmosphere.jpg" // couche d'atmosphère semi-transparente en plus
   },
   {
     name: "Terre",
@@ -20,6 +22,7 @@ export const planetsData = [
     distance: 62,
     speed: 0.018,
     texture: "textures/2k_earth_daymap.jpg",
+    // Liste des lunes : chacune avec son propre rayon, distance et vitesse de révolution
     moons: [
       { name: "Lune", radius: 0.72, distance: 6.5, speed: 0.12, texture: "textures/2k_moon.jpg", tilt: 0.09 }
     ]
@@ -31,6 +34,7 @@ export const planetsData = [
     speed: 0.04,
     texture: "textures/2k_mars.jpg",
     moons: [
+      // Lunes sans texture dédiée : une simple couleur unie est utilisée (voir planetFactory.js)
       { name: "Phobos",  radius: 0.18, distance: 3.2, speed: 0.55, color: 0x8a7a6a, tilt: 0.02 },
       { name: "Déimos",  radius: 0.13, distance: 5.0, speed: 0.22, color: 0x9a8a7a, tilt: 0.05 }
     ]
@@ -41,6 +45,7 @@ export const planetsData = [
     distance: 110,
     speed: 0.01,
     texture: "textures/2k_jupiter.jpg",
+    // 4 lunes principales (galiléennes)
     moons: [
       { name: "Io",       radius: 0.38, distance: 13,  speed: 0.30, color: 0xe8c040, tilt: 0.00 },
       { name: "Europe",   radius: 0.32, distance: 17,  speed: 0.20, color: 0xd0c8b8, tilt: 0.01 },
@@ -54,7 +59,7 @@ export const planetsData = [
     distance: 150,
     speed: 0.0045,
     texture: "textures/2k_saturn.jpg",
-    ringTexture: "textures/2k_saturn_ring_alpha.png",
+    ringTexture: "textures/2k_saturn_ring_alpha.png", // texture des anneaux (avec canal alpha)
     moons: [
       { name: "Encelade", radius: 0.20, distance: 11,  speed: 0.28, color: 0xf0f0f8, tilt: 0.00 },
       { name: "Titan",    radius: 0.48, distance: 16,  speed: 0.14, color: 0xd09040, tilt: 0.03 },
@@ -67,6 +72,7 @@ export const planetsData = [
     distance: 190,
     speed: 0.002,
     texture: "textures/2k_uranus.jpg",
+    // tilt élevé (~1.51 rad ≈ 86°) car Uranus est inclinée presque sur le côté
     moons: [
       { name: "Miranda", radius: 0.18, distance: 7.5,  speed: 0.32, color: 0xa0a0b0, tilt: 1.51 },
       { name: "Ariel",   radius: 0.24, distance: 10,   speed: 0.22, color: 0xb8b8c8, tilt: 1.51 },
@@ -79,6 +85,7 @@ export const planetsData = [
     distance: 230,
     speed: 0.0005,
     texture: "textures/2k_neptune.jpg",
+    // vitesse négative : Triton orbite en sens rétrograde (inverse des autres lunes)
     moons: [
       { name: "Triton", radius: 0.35, distance: 9, speed: -0.18, color: 0x8898b8, tilt: 2.75 }
     ]
@@ -86,15 +93,19 @@ export const planetsData = [
 ];
 
 // Ton dictionnaire personnalisé d'origine complet
+// Données "fiches d'information" affichées dans le panneau VR/desktop (texte + voix off)
+// Indexées par une clé interne (en minuscules, sans accent pour la plupart)
 const RAW_PLANET_DATA = {
   soleil: {
     name: 'Soleil',
     color: '#FDB813',
+    // Liste de faits courts affichés sous forme de puces dans le panneau d'info
     facts: [
       'Diamètre : 1 391 000 km',
       'Âge : 4,6 milliards d\'années',
       'Température : 5 778 K en surface'
     ],
+    // Texte plus long, lu à voix haute via la synthèse vocale (speechSynthesis) lors du clic
     audioText: 'Le Soleil est notre étoile. Naine jaune vieille de 4,6 milliards d\'années, son diamètre est 109 fois celui de la Terre. Il représente 99,8 pourcent de la masse du système solaire. Sa chaleur et sa lumière rendent la vie possible sur Terre.'
   },
   mercure: {
@@ -179,15 +190,17 @@ const RAW_PLANET_DATA = {
   }
 };
 
-// Indexation dynamique à l'épreuve des erreurs d'accents ou de casse (Majuscule/Minuscule)
+// Indexation à l'épreuve des accents/casse : clé = nom du mesh Three.js → données formatées
 export const PLANET_DATA = {};
 Object.keys(RAW_PLANET_DATA).forEach(key => {
   const item = RAW_PLANET_DATA[key];
   let size = 3;
+  // Récupère le rayon réel depuis planetsData (cas particulier Venus/Vénus)
   const match = planetsData.find(p => p.name.toLowerCase() === item.name.toLowerCase() || (key === 'venus' && p.name === 'Venus'));
   if (match) size = match.size;
-  if (key === 'soleil') size = 16;
+  if (key === 'soleil') size = 16; // pas dans planetsData, valeur alignée avec soleil.js
 
+  // Reformatage attendu par infoPanel.js
   const dataFormatted = {
     title: item.name,
     text: item.facts.join('\n'),
@@ -195,7 +208,7 @@ Object.keys(RAW_PLANET_DATA).forEach(key => {
     radius: size
   };
 
-  // On enregistre sous toutes les formes possibles pour couvrir Vénus/Venus et Terre/terre
+  // Enregistré sous plusieurs clés pour couvrir Vénus/Venus et Terre/terre
   PLANET_DATA[item.name] = dataFormatted;
   PLANET_DATA[item.name.toLowerCase()] = dataFormatted;
   if (item.name === "Vénus") PLANET_DATA["Venus"] = dataFormatted;

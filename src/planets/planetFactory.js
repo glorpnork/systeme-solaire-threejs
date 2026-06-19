@@ -2,7 +2,9 @@ import * as THREE from 'three';
 
 const textureLoader = new THREE.TextureLoader();
 
+// Construit une planète (mesh + pivot orbital + atmosphère/anneaux optionnels + lunes)
 export function createPlanet(scene, data) {
+  // Pivot centré sur le Soleil : le faire tourner fait orbiter la planète
   const pivot = new THREE.Object3D();
   scene.add(pivot);
 
@@ -10,24 +12,24 @@ export function createPlanet(scene, data) {
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.minFilter = THREE.LinearMipmapLinearFilter;
 
-  const material = new THREE.MeshStandardMaterial({ 
+  const material = new THREE.MeshStandardMaterial({
     map: texture,
     roughness: 0.8,
     metalness: 0.1
   });
-  
+
   const geometry = new THREE.SphereGeometry(data.size, 64, 64);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.x = data.distance;
   mesh.name = data.name;
-  
+
   // Configuration indispensable pour le repérage par clic/laser dans interaction.js
-  mesh.userData = { 
+  mesh.userData = {
     name: data.name,
     radius: data.size,
-    info: data.info 
+    info: data.info
   };
-  
+
   pivot.add(mesh);
 
   // Atmosphère optionnelle (ex: Vénus)
@@ -39,7 +41,7 @@ export function createPlanet(scene, data) {
       blending: THREE.AdditiveBlending,
       opacity: 0.45
     });
-    
+
     const atmosGeometry = new THREE.SphereGeometry(data.size * 1.01, 64, 64);
     const atmosMesh = new THREE.Mesh(atmosGeometry, atmosMaterial);
     mesh.add(atmosMesh);
@@ -52,6 +54,7 @@ export function createPlanet(scene, data) {
     const outerRadius = data.size * 2.3;
     const ringGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 64);
 
+    // Recalcule les UV pour un mapping radial (celui par défaut de RingGeometry ne convient pas)
     const pos = ringGeometry.attributes.position;
     const v3 = new THREE.Vector3();
     for (let i = 0; i < pos.count; i++) {
@@ -68,7 +71,7 @@ export function createPlanet(scene, data) {
     });
 
     const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial);
-    ringMesh.rotation.x = Math.PI / 2;
+    ringMesh.rotation.x = Math.PI / 2; // couche l'anneau à l'horizontale
     mesh.add(ringMesh);
   }
 
@@ -76,8 +79,9 @@ export function createPlanet(scene, data) {
   const moons = [];
   if (data.moons) {
     for (const moonData of data.moons) {
+      // Pivot centré sur la planète : orbite de la lune
       const moonPivot = new THREE.Object3D();
-      moonPivot.rotation.z = moonData.tilt ?? 0;
+      moonPivot.rotation.z = moonData.tilt ?? 0; // inclinaison du plan orbital
       mesh.add(moonPivot);
 
       let moonMat;

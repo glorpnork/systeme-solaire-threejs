@@ -1,0 +1,334 @@
+GLOSSAIRE - TERMES IMPORTANTS DU PROJET SYSTEME SOLAIRE (THREE.JS)
+
+
+1. CONCEPTS THREE.JS DE BASE
+
+- Scene
+    Le conteneur racine qui contient tous les objets 3D affiches
+    (planetes, lumieres, panneaux, etc.).
+
+- Mesh
+    Un objet 3D visible = une Geometry (forme) + un Material (apparence).
+
+- Geometry (ex: SphereGeometry, RingGeometry, PlaneGeometry, BufferGeometry)
+    Definit la forme geometrique d'un objet : ses sommets (vertices) et
+    ses faces.
+
+- Material (ex: MeshStandardMaterial, MeshBasicMaterial, LineBasicMaterial)
+    Definit comment la surface d'un objet reagit a la lumiere et aux
+    textures.
+    - MeshStandardMaterial : reagit a la lumiere (ombres, reflets) -> utilise
+      pour les planetes, lunes, anneaux.
+    - MeshBasicMaterial : ignore les lumieres, toujours pleinement visible
+      -> utilise pour le Soleil et les panneaux d'info (qui doivent
+      toujours etre lisibles).
+
+- Texture / TextureLoader
+    Image chargee (jpg/png) appliquee sur une geometrie via la propriete
+    "map" d'un materiau.
+
+- CanvasTexture
+    Texture generee a partir d'un <canvas> 2D au lieu d'un fichier image
+    (utilisee pour le panneau d'info et le HUD de vitesse, dont le contenu
+    est dessine dynamiquement).
+
+- Object3D
+    Classe de base de tout objet positionnable dans la scene (un Mesh en
+    herite, mais aussi les groupes vides comme les "pivots" ou les
+    "Group").
+
+- Group
+    Conteneur vide qui regroupe plusieurs objets pour les manipuler comme
+    un seul bloc (ex: cameraRig regroupe la camera en VR).
+
+- PerspectiveCamera
+    Camera qui simule la perspective humaine (les objets lointains
+    paraissent plus petits). Parametres : champ de vision (FOV), ratio
+    largeur/hauteur, plan proche (near) et plan lointain (far).
+
+- WebGLRenderer
+    Le moteur qui calcule l'image finale (rendu) a partir de la scene et
+    de la camera, et l'affiche dans un <canvas>.
+
+- renderOrder
+    Indique l'ordre de dessin d'un objet par rapport aux autres
+    (un nombre plus eleve = dessine plus tard, donc par-dessus).
+
+
+2. HIERARCHIE PARENT / ENFANT
+
+- pivot
+    Un Object3D invisible utilise comme point d'ancrage : faire tourner
+    le pivot fait orbiter l'objet attache autour de lui. C'est le
+    mecanisme qui simule les orbites des planetes et des lunes.
+
+- add() / relation parent-enfant
+    Attacher un objet a un autre (mesh.add(autreMesh)) fait que ce
+    dernier herite de la position, rotation et echelle de son parent.
+
+- getWorldPosition() / getWorldQuaternion()
+    Recupere la position/orientation reelle d'un objet dans la scene
+    (et non sa position relative a son parent), en remontant toute la
+    hierarchie.
+
+
+3. PROPRIETES ET TECHNIQUES DE RENDU
+
+- userData
+    Objet libre pour stocker des metadonnees personnalisees sur un objet
+    3D (ex: nom, rayon), recuperees plus tard lors d'un clic ou d'un
+    raycasting.
+
+- colorSpace (THREE.SRGBColorSpace)
+    Corrige l'espace de couleur d'une texture pour un rendu fidele
+    (sans quoi les couleurs paraissent trop sombres ou delavees).
+
+- minFilter / mipmaps
+    Optimise le rendu d'une texture vue de loin ou en petite taille en
+    utilisant des versions reduites pre-calculees de l'image.
+
+- UV mapping (attributes.uv)
+    Coordonnees qui indiquent comment "coller" une image 2D sur une
+    surface 3D. Recalculees manuellement pour les anneaux de Saturne car
+    le mapping par defaut de RingGeometry n'est pas radial.
+
+- blending (THREE.AdditiveBlending)
+    Mode de fusion des couleurs ou elles s'additionnent entre elles
+    (effet lumineux/translucide), utilise pour l'atmosphere de Venus.
+
+- side (THREE.DoubleSide)
+    Rend les deux faces d'une surface visibles (utile pour un plan fin
+    comme un anneau ou un panneau).
+
+- transparent / opacity
+    Active la transparence d'un materiau et definit son niveau
+    (0 = invisible, 1 = opaque).
+
+- depthWrite / depthTest
+    Controle si un objet ecrit/teste sa profondeur dans le rendu ;
+    desactive parfois pour eviter des artefacts visuels avec des objets
+    transparents superposes (ex: le panneau d'info, le HUD).
+
+- roughness / metalness
+    Parametres du materiau "standard" : roughness = aspect mat/brillant,
+    metalness = aspect metallique ou non.
+
+- emissive
+    Couleur qu'un materiau "emet" lui-meme, independamment de la lumiere
+    ambiante (utilisee pour la surbrillance de l'objet selectionne).
+
+
+4. SIMULATION ORBITALE
+
+- tilt
+    Inclinaison du plan orbital d'une lune (rotation sur l'axe Z de son
+    pivot). Tres eleve pour les lunes d'Uranus (planete inclinee sur le
+    cote).
+
+- distance
+    Rayon de l'orbite (distance au corps autour duquel l'objet tourne).
+
+- speed
+    Vitesse de revolution orbitale : un angle (en radians) ajoute a la
+    rotation du pivot a chaque frame.
+
+- rotation propre vs revolution
+    Rotation propre = la planete tourne sur elle-meme (rotation.y du
+    mesh) ; revolution = la planete tourne autour du Soleil (rotation.y
+    du pivot).
+
+
+5. LUMIERES
+
+- AmbientLight
+    Lumiere qui eclaire uniformement toute la scene sans creer d'ombre,
+    evite que le cote non eclaire des planetes soit totalement noir.
+
+- PointLight
+    Lumiere emise dans toutes les directions depuis un point precis
+    (simule le Soleil). Parametres : couleur, intensite, portee (distance
+    max), decay (attenuation avec la distance).
+
+
+6. CAMERA ET CONTROLES (DESKTOP)
+
+- OrbitControls
+    Module Three.js qui permet de faire tourner/zoomer/deplacer la
+    camera autour d'une cible avec la souris.
+
+- target
+    Le point que la camera regarde et autour duquel elle orbite.
+
+- damping / dampingFactor
+    Ajoute une inertie aux mouvements de camera pour un rendu plus fluide
+    (au lieu d'un arret brusque).
+
+- Raycaster
+    Outil qui lance un rayon invisible (depuis la souris ou une manette
+    VR) pour detecter quel objet 3D se trouve sous le curseur/pointeur
+    (utilise pour la selection au clic).
+
+- Vector3 / Vector2
+    Structures representant un point ou une direction dans l'espace
+    (3 coordonnees x,y,z) ou en 2D (x,y, ex: position souris).
+
+- Quaternion
+    Structure mathematique representant une rotation/orientation dans
+    l'espace (plus stable que les angles d'Euler pour combiner des
+    rotations).
+
+- normalize()
+    Transforme un vecteur pour qu'il garde sa direction mais ait une
+    longueur de 1 (utile pour ne garder qu'une direction, sans
+    l'intensite).
+
+- lerp / lerpVectors (interpolation lineaire)
+    Calcule une position intermediaire entre un point de depart et un
+    point d'arrivee, selon une progression t (0 a 1). Base des
+    animations de zoom.
+
+- easing (fonction "ease")
+    Fonction qui transforme une progression lineaire (0 a 1) en une
+    progression avec acceleration/deceleration, pour un mouvement plus
+    naturel qu'une vitesse constante.
+
+
+7. REALITE VIRTUELLE (WEBXR)
+
+- WebXR
+    API web standard permettant d'afficher du contenu en realite
+    virtuelle/augmentee dans le navigateur.
+
+- VRButton
+    Bouton fourni par Three.js qui demarre une session VR.
+
+- cameraRig
+    Groupe qui contient la camera : en VR, on deplace ce groupe plutot
+    que la camera elle-meme (pilotee directement par le casque).
+
+- XRControllerModelFactory
+    Genere le modele 3D visuel d'une manette VR a afficher dans la scene.
+
+- controller / grip
+    "controller" = la manette logique (position + evenements de bouton),
+    "grip" = la representation visuelle 3D de la manette.
+
+- session (XRSession)
+    Represente une session VR active ; contient la liste des manettes
+    connectees (inputSources).
+
+- inputSources / gamepad
+    Liste des manettes/controleurs connectes a la session VR ; chaque
+    gamepad expose des "axes" (joysticks) et des "buttons" (boutons).
+
+- handedness
+    Indique si une manette est tenue dans la main gauche ou droite
+    ("left" / "right").
+
+- deadzone (zone morte)
+    Petite plage de valeurs de joystick ignorees pres du centre, pour
+    eviter les derives dues au bruit du capteur quand le joystick est
+    au repos.
+
+- selectstart (evenement)
+    Evenement declenche quand l'utilisateur appuie sur la gachette de
+    selection d'une manette VR.
+
+
+8. BOUCLE D'ANIMATION ET TEMPS
+
+- setAnimationLoop
+    Methode du renderer Three.js qui remplace requestAnimationFrame et
+    fonctionne aussi bien en mode normal qu'en session VR.
+
+- requestAnimationFrame
+    API navigateur qui appelle une fonction juste avant le prochain
+    rafraichissement d'ecran (boucle d'animation native).
+
+- delta time (dt)
+    Temps ecoule depuis la derniere frame (en secondes), utilise pour que
+    les mouvements restent a vitesse constante quelle que soit la
+    frequence d'images (fps).
+
+- performance.now()
+    Renvoie un horodatage tres precis (millisecondes), utilise pour
+    chronometrer les animations de zoom.
+
+
+9. CANVAS 2D ET DESSIN
+
+- CanvasRenderingContext2D (ctx)
+    Contexte de dessin 2D d'un <canvas> HTML ; fournit les methodes pour
+    dessiner formes, textes, courbes (utilise pour le panneau d'info et
+    le HUD de vitesse).
+
+- fillRect / clearRect
+    Remplit ou efface une zone rectangulaire du canvas.
+
+- beginPath / moveTo / lineTo / quadraticCurveTo / closePath
+    Methodes pour construire un tracé personnalisé (ex: rectangle aux
+    coins arrondis).
+
+- fillText / measureText / textAlign / font
+    Methodes pour dessiner et mesurer du texte sur le canvas.
+
+- needsUpdate
+    Propriete a mettre a true sur une texture apres l'avoir modifiee,
+    pour que Three.js la renvoie au GPU.
+
+
+10. AUDIO ET VOIX
+
+- AudioContext / Web Audio API
+    API navigateur permettant de generer et manipuler du son
+    directement en JavaScript (sans fichier audio).
+
+- OscillatorNode
+    Generateur de son (onde sinusoidale, carree, etc.) utilise pour
+    creer le bip de selection.
+
+- GainNode
+    Controle le volume (gain) d'un son, permet de creer des fondus
+    d'entree/sortie.
+
+- SpeechSynthesis / SpeechSynthesisUtterance
+    API navigateur de synthese vocale (texte vers parole), utilisee pour
+    lire a voix haute la description de chaque planete.
+
+
+11. JAVASCRIPT MODERNE UTILISE DANS LE PROJET
+
+- import / export (modules ES)
+    Syntaxe pour partager du code entre fichiers JavaScript.
+
+- Optional chaining (?.)
+    Acces securise a une propriete qui pourrait etre null/undefined sans
+    provoquer d'erreur (ex: mesh.material?.emissive).
+
+- Nullish coalescing (??)
+    Fournit une valeur par defaut uniquement si la valeur de gauche est
+    null ou undefined (ex: moonData.tilt ?? 0).
+
+- Map (structure de donnees)
+    Dictionnaire cle->valeur utilise pour memoriser les couleurs
+    emissives d'origine des objets (savedEmissive).
+
+- Array.map / forEach / find
+    Methodes de tableau utilisees pour transformer ou parcourir les
+    listes de planetes/lunes.
+
+
+12. OUTILS DE BUILD
+
+- Vite
+    Outil de developpement et de build qui sert les fichiers source en
+    direct (serveur de dev rapide) et produit le dossier "dist" optimise
+    pour la production.
+
+- defineConfig
+    Fonction utilitaire de Vite pour ecrire sa configuration avec
+    autocompletion/typage.
+
+- dist/
+    Dossier genere automatiquement par "npm run build", contenant la
+    version optimisee/minifiee du site (ne pas modifier a la main).

@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 
+// Panneau d'info 3D (texte dessiné sur canvas 2D utilisé comme texture), affiché près de la planète sélectionnée
 export function createInfoPanel(scene, renderer) {
-  const CW = 1024, CH = 900;
+  const CW = 1024, CH = 900; // dimensions du canvas de dessin
   const cv = document.createElement('canvas');
   cv.width = CW; cv.height = CH;
   const ctx = cv.getContext('2d');
@@ -16,12 +17,13 @@ export function createInfoPanel(scene, renderer) {
       depthWrite: false,
     })
   );
-  panel.renderOrder = 999;
+  panel.renderOrder = 999; // dessiné par-dessus le reste
   panel.visible = false;
   scene.add(panel);
 
-  let currentMesh = null;
+  let currentMesh = null; // planète actuellement suivie par le panneau
 
+  // Rectangle aux coins arrondis (fond du panneau)
   function roundRect(x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -36,6 +38,7 @@ export function createInfoPanel(scene, renderer) {
     ctx.closePath();
   }
 
+  // Découpe un texte en lignes ne dépassant pas maxWidth (le canvas ne gère pas le word-wrap nativement)
   function wrapText(text, maxWidth, font) {
     ctx.font = font;
     const words = text.split(' ');
@@ -54,6 +57,7 @@ export function createInfoPanel(scene, renderer) {
     return result;
   }
 
+  // Dessine le contenu complet du panneau (fond, titre, faits, texte audio)
   function drawPanel(data) {
     ctx.clearRect(0, 0, CW, CH);
 
@@ -91,7 +95,7 @@ export function createInfoPanel(scene, renderer) {
     ctx.lineTo(CW - 48, 140);
     ctx.stroke();
 
-    // Faits
+    // Faits (liste à puces)
     const lines = (data.text || '').split('\n').filter(Boolean);
     ctx.fillStyle = '#c8dff5';
     ctx.font = '40px Arial';
@@ -111,7 +115,7 @@ export function createInfoPanel(scene, renderer) {
     ctx.lineTo(CW - 48, factsBottom);
     ctx.stroke();
 
-    // audioText
+    // Texte narratif (aussi lu à voix haute), avec retour à la ligne automatique
     if (data.audioText) {
       const audioFont = 'italic 32px Arial';
       const wrappedAudio = wrapText(data.audioText, CW - 104, audioFont);
@@ -123,7 +127,7 @@ export function createInfoPanel(scene, renderer) {
       });
     }
 
-    texture.needsUpdate = true;
+    texture.needsUpdate = true; // réuploade le canvas modifié vers le GPU
   }
 
   const _wp = new THREE.Vector3();
@@ -141,6 +145,7 @@ export function createInfoPanel(scene, renderer) {
       panel.visible = false;
       currentMesh = null;
     },
+    // Repositionne le panneau à chaque frame : collé à la planète, toujours face caméra (billboard)
     update: (camera) => {
       if (!panel.visible || !currentMesh) return;
 
@@ -149,9 +154,9 @@ export function createInfoPanel(scene, renderer) {
       camera.getWorldQuaternion(_camQuat);
 
       const radius = currentMesh.userData.radius || 3;
-      const pw = radius * 2 + 4;
+      const pw = radius * 2 + 4; // largeur du panneau, proportionnelle à la taille de la planète
 
-      _right.set(1, 0, 0).applyQuaternion(_camQuat);
+      _right.set(1, 0, 0).applyQuaternion(_camQuat); // direction "droite" de la caméra
 
       panel.position.copy(_wp).addScaledVector(_right, radius * 1.5 + pw * 0.55);
       panel.scale.setScalar(pw);

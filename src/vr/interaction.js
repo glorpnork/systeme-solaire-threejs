@@ -3,10 +3,12 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 import { PLANET_DATA } from '../data/planetData.js';
 import { createInfoPanel } from './infoPanel.js';
 
+// Sélection au clic/laser, zoom sur une planète, panneau d'info, narration vocale,
+// HUD de vitesse en VR, et locomotion VR avec les manettes
 export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshes, orbitControls, speedState) {
   const infoPanel = createInfoPanel(scene, renderer);
 
-  // Zoom
+  // --- Zoom "avant" vers la planète sélectionnée ---
   let zoomActive = false;
   const zoomFrom = new THREE.Vector3();       // desktop: camera world pos start
   const zoomTo = new THREE.Vector3();         // world pos cible (near planet)
@@ -14,15 +16,15 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
   const vrZoomFromRig = new THREE.Vector3();  // VR: rig start
   const vrZoomToRig = new THREE.Vector3();    // VR: rig cible
   let zoomStartTime = 0;
-  const ZOOM_DURATION = 1800;
+  const ZOOM_DURATION = 1800; // ms
 
-  // Zoom-out (retour vue d'ensemble)
+  // --- Focus + zoom "arrière" (retour à la vue d'ensemble) ---
   let focusActive = false;
   let zoomOutActive = false;
-  const overviewPos = new THREE.Vector3();           // desktop: camera pos overview
-  const vrOverviewRigPos = new THREE.Vector3();      // VR: rig pos overview
+  const overviewPos = new THREE.Vector3();
+  const vrOverviewRigPos = new THREE.Vector3();
   const _trackPos = new THREE.Vector3();
-  const vrRigOffset = new THREE.Vector3();           // VR: rig - planet
+  const vrRigOffset = new THREE.Vector3();
   const _camWorld = new THREE.Vector3();
   const _sunDir = new THREE.Vector3();
   let _focusDistance = 10;
@@ -34,11 +36,11 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
   const zoomOutOrbitTarget = new THREE.Vector3();
   let zoomOutStartTime = 0;
 
-  // Highlight
+  // --- Surbrillance de l'objet sélectionné ---
   let highlighted = null;
-  const savedEmissive = new Map();
+  const savedEmissive = new Map(); // couleur émissive d'origine, pour pouvoir la restaurer
 
-  // Audio
+  // --- Bip de sélection (Web Audio, généré par synthèse) ---
   let audioCtx = null;
   function getAudioCtx() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -60,6 +62,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     } catch (_) {}
   }
 
+  // --- Synthèse vocale (lecture de la description de la planète) ---
   let frVoice = null;
   function loadVoices() {
     frVoice = (window.speechSynthesis?.getVoices() || []).find(v => v.lang.startsWith('fr')) || null;
@@ -94,9 +97,9 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     highlighted = null;
   }
 
-  // Planet selection
+  // Sélectionne une planète : surbrillance, son, narration, panneau d'info, zoom caméra
   function selectPlanet(mesh) {
-    // CORRECTION : Si on a cliqué sur un enfant (atmosphère ou anneau), on remonte au mesh principal de la planète
+    // Si on a cliqué sur un enfant (atmosphère, anneau), on remonte au mesh principal
     let targetMesh = mesh;
     while (targetMesh && targetMesh.parent && !PLANET_DATA[targetMesh.name]) {
       if (PLANET_DATA[targetMesh.parent.name]) {
@@ -107,11 +110,12 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     }
 
     const data = PLANET_DATA[targetMesh.name];
-    if (!data) return; // Sécurité si l'objet n'a pas de correspondance de données
+    if (!data) return; // pas de données correspondantes : on ignore
 
+    // Mémorise la vue actuelle pour pouvoir y revenir au deselect()
     if (!focusActive && !zoomOutActive) {
-      overviewPos.copy(camera.position);          // desktop
-      vrOverviewRigPos.copy(cameraRig.position);  // VR
+      overviewPos.copy(camera.position);
+      vrOverviewRigPos.copy(cameraRig.position);
       if (orbitControls) overviewOrbitTarget.copy(orbitControls.target);
     }
     focusActive = true;
@@ -123,25 +127,25 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     infoPanel.show(data, targetMesh);
 
     const wp = new THREE.Vector3();
-    targetMesh.getWorldPosition(wp);
+    targetMesh.getWorldPosition(wp); // position réelle dans la scène (pas relative au pivot)
     const radius = targetMesh.userData.radius || 10;
 
     camera.getWorldPosition(_camWorld);
-    _focusDistance = radius * 4 + 5;
+    _focusDistance = radius * 4 + 5; // distance d'arrêt, proportionnelle au rayon
 
     zoomFrom.copy(_camWorld);
-    // Pour le soleil (wp ≈ origine) on garde la direction courante ; pour les planètes on approche côté soleil
     if (wp.lengthSq() > 1) {
+      // Planète : on s'approche du côté faisant face au Soleil (mieux éclairé)
       _sunDir.copy(wp).negate().normalize();
       zoomTo.copy(wp).addScaledVector(_sunDir, _focusDistance);
     } else {
-      // Soleil : approcher depuis la position courante de la caméra
+      // Soleil : on approche depuis la position courante de la caméra
       _sunDir.copy(wp).sub(_camWorld).normalize();
       zoomTo.copy(wp).sub(_sunDir.multiplyScalar(_focusDistance));
     }
     zoomPlanetPos.copy(wp);
 
-    // VR : déplace le rig pour que la tête arrive à zoomTo
+    // VR : on déplace le rig (pas la caméra) pour amener la tête à zoomTo
     vrZoomFromRig.copy(cameraRig.position);
     vrZoomToRig.copy(cameraRig.position).add(zoomTo).sub(_camWorld);
 
@@ -150,6 +154,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     if (orbitControls) orbitControls.enabled = false;
   }
 
+  // Désélectionne : cache le panneau, arrête la narration, anime le retour à la vue d'ensemble
   function deselect() {
     clearHighlight();
     infoPanel.hide();
@@ -157,10 +162,8 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
 
     if (focusActive) {
       zoomActive = false;
-      // Desktop
       zoomOutFrom.copy(camera.position);
       zoomOutTo.copy(overviewPos);
-      // VR
       vrZoomOutFromRig.copy(cameraRig.position);
       vrZoomOutToRig.copy(vrOverviewRigPos);
 
@@ -174,7 +177,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     }
   }
 
-  // Mouse (desktop)
+  // --- Sélection au clic (desktop) ---
   const mouseRay = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
   let mouseDownX = 0, mouseDownY = 0;
@@ -183,30 +186,31 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
   window.addEventListener('mouseup', e => {
     if (renderer.xr.isPresenting) return;
     const dx = e.clientX - mouseDownX, dy = e.clientY - mouseDownY;
-    if (Math.sqrt(dx * dx + dy * dy) > 5) return;
+    if (Math.sqrt(dx * dx + dy * dy) > 5) return; // glisser caméra, pas un clic
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     mouseRay.setFromCamera(mouse, camera);
-    
-    // CORRECTION : "true" permet au Raycaster de traverser l'atmosphère ou les anneaux
-    const hits = mouseRay.intersectObjects(planetMeshes, true); 
+
+    // "true" = teste aussi les enfants (atmosphère, anneaux)
+    const hits = mouseRay.intersectObjects(planetMeshes, true);
     hits.length > 0 ? selectPlanet(hits[0].object) : deselect();
   });
   window.addEventListener('keydown', e => { if (e.key === 'Escape') deselect(); });
 
-  // VR controllers
+  // --- Contrôleurs VR (manettes) ---
   const modelFactory = new XRControllerModelFactory();
   const tempMatrix = new THREE.Matrix4();
   const controllerRay = new THREE.Raycaster();
 
   for (let i = 0; i < 2; i++) {
-    const controller = renderer.xr.getController(i);
+    const controller = renderer.xr.getController(i); // manette logique (position + événements)
     cameraRig.add(controller);
-    const grip = renderer.xr.getControllerGrip(i);
+    const grip = renderer.xr.getControllerGrip(i); // modèle 3D visuel
     grip.add(modelFactory.createControllerModel(grip));
     cameraRig.add(grip);
 
+    // Ligne laser pointant vers l'avant de la manette
     const lineGeo = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1)
     ]);
@@ -218,14 +222,13 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
       tempMatrix.identity().extractRotation(controller.matrixWorld);
       controllerRay.ray.origin.setFromMatrixPosition(controller.matrixWorld);
       controllerRay.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-      
-      // CORRECTION VR : récursivité activée également
+
       const hits = controllerRay.intersectObjects(planetMeshes, true);
       hits.length > 0 ? selectPlanet(hits[0].object) : deselect();
     });
   }
 
-  // VR HUD vitesse
+  // --- HUD vitesse (visible uniquement en VR) ---
   const HW = 256, HH = 80;
   const hudCv = document.createElement('canvas');
   hudCv.width = HW; hudCv.height = HH;
@@ -267,13 +270,13 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
   }
   drawHUD(speedState?.multiplier ?? 1);
 
-  // VR locomotion
+  // --- Locomotion VR (joysticks) ---
   const MOVE_SPEED = 60;
   const VERT_SPEED = 15;
-  const TURN_SPEED = Math.PI * 0.7; // rad/s — rotation analogique lisse
+  const TURN_SPEED = Math.PI * 0.7; // rad/s
   const DEADZONE = 0.15;
   const TURN_DEADZONE = 0.40;
-  const prevBtns = { a: false, b: false };
+  const prevBtns = { a: false, b: false }; // pour détecter un appui (front montant), pas un maintien
   const _fwd = new THREE.Vector3();
   const _right = new THREE.Vector3();
   const _xrPos = new THREE.Vector3();
@@ -281,6 +284,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
   const _yAxis = new THREE.Vector3(0, 1, 0);
   const _turnQ = new THREE.Quaternion();
 
+  // Certains casques exposent les axes sur 0/1 ou 2/3 : on garde celui de plus grande amplitude
   function readStick(axes) {
     const x0 = axes[0] ?? 0, x2 = axes[2] ?? 0;
     const y1 = axes[1] ?? 0, y3 = axes[3] ?? 0;
@@ -298,11 +302,10 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     const session = renderer.xr.getSession();
     if (!session) return;
 
-    // camera est dans cameraRig → getWorld* remonte correctement dans la hiérarchie
     camera.getWorldPosition(_xrPos);
     camera.getWorldQuaternion(_xrQuat);
 
-    // Vecteurs de déplacement dans le plan horizontal, relatifs à la tête
+    // Directions avant/droite de la tête, dans le plan horizontal
     _fwd.set(0, 0, -1).applyQuaternion(_xrQuat);
     _fwd.y = 0;
     if (_fwd.lengthSq() > 0.001) _fwd.normalize();
@@ -327,11 +330,11 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
         const sy = applyDeadzone(stick.y);
         if (sy !== 0) cameraRig.position.y -= sy * VERT_SPEED * dt;
 
-        // Rotation lisse — deadzone plus élevé pour éviter les déclenchements accidentels
+        // Rotation lisse, deadzone plus large pour éviter les déclenchements accidentels
         const sx = Math.abs(stick.x) > TURN_DEADZONE ? stick.x : 0;
         if (sx !== 0) {
           _turnQ.setFromAxisAngle(_yAxis, -sx * TURN_SPEED * dt);
-          cameraRig.quaternion.premultiply(_turnQ);
+          cameraRig.quaternion.premultiply(_turnQ); // rotation dans le référentiel monde
         }
 
         const aPressed = buttons[4]?.pressed ?? false;
@@ -349,6 +352,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
       }
     }
 
+    // Repositionne le HUD devant/bas-droite du regard
     const fwdFull = new THREE.Vector3(0, 0, -1).applyQuaternion(_xrQuat);
     const downFull = new THREE.Vector3(0, -1, 0).applyQuaternion(_xrQuat);
     const rightFull = new THREE.Vector3(1, 0, 0).applyQuaternion(_xrQuat);
@@ -362,6 +366,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
 
   let lastT = null;
 
+  // Appelée à chaque frame depuis main.js : orchestre VR, zoom, suivi de cible, HUD
   function update() {
     const now = performance.now();
     const dt = lastT ? Math.min((now - lastT) / 1000, 0.1) : 0.016;
@@ -375,8 +380,9 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
     }
 
     const inVR = renderer.xr.isPresenting;
-    const ease = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    const ease = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // accélération/décélération
 
+    // Animation de zoom vers la planète
     if (zoomActive) {
       const t = Math.min((now - zoomStartTime) / ZOOM_DURATION, 1);
       if (inVR) {
@@ -397,6 +403,7 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
       }
     }
 
+    // Animation de retour à la vue d'ensemble
     if (zoomOutActive) {
       const t = Math.min((now - zoomOutStartTime) / ZOOM_DURATION, 1);
       if (inVR) {
@@ -414,12 +421,12 @@ export function setupInteraction(renderer, scene, camera, cameraRig, planetMeshe
       }
     }
 
+    // Suivi continu de la planète tant qu'elle est en focus
     if (focusActive && !zoomActive && !zoomOutActive && highlighted) {
       highlighted.getWorldPosition(_trackPos);
       if (inVR) {
         cameraRig.position.addVectors(_trackPos, vrRigOffset);
       } else {
-        // Reste côté soleil et regarde la planète (si soleil, garde offset fixe)
         if (_trackPos.lengthSq() > 1) {
           _sunDir.copy(_trackPos).negate().normalize();
           camera.position.copy(_trackPos).addScaledVector(_sunDir, _focusDistance);

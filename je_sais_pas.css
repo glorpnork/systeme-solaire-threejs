@@ -1,74 +1,86 @@
+/* Réinitialisation globale : supprime les marges/paddings par défaut du navigateur,
+   et fait que padding/border soient inclus dans la largeur/hauteur déclarées */
 * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { overflow: hidden; background: #000; }
-      canvas { display: block; }
+/* Empêche les barres de défilement (la scène 3D occupe tout l'écran) et fond noir par défaut */
+body { overflow: hidden; background: #000; }
+/* Le canvas Three.js est affiché en bloc (évite un espace blanc parasite sous l'élément) */
+canvas { display: block; }
 
-      #speed-control {
-        position: fixed;
-        bottom: 28px;
-        left: 28px;
-        background: rgba(5, 15, 40, 0.82);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(0, 200, 255, 0.25);
-        border-radius: 14px;
-        padding: 10px 22px 10px 18px;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        color: #cce4ff;
-        font-family: Arial, sans-serif;
-        font-size: 13px;
-        user-select: none;
-        z-index: 100;
-        white-space: nowrap;
-      }
+/* Conteneur du contrôle de vitesse, fixé en bas à gauche de l'écran */
+#speed-control {
+  position: fixed;
+  bottom: 28px;
+  left: 28px;
+  background: rgba(5, 15, 40, 0.82);   /* fond bleu nuit semi-transparent */
+  backdrop-filter: blur(10px);          /* effet de flou "verre dépoli" derrière le panneau */
+  -webkit-backdrop-filter: blur(10px);  /* équivalent pour Safari/WebKit */
+  border: 1px solid rgba(0, 200, 255, 0.25); /* fine bordure cyan translucide */
+  border-radius: 14px;
+  padding: 10px 22px 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;                            /* espacement entre label, slider et valeur */
+  color: #cce4ff;
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  user-select: none;                    /* empêche la sélection de texte au clic/glisser */
+  z-index: 100;                         /* reste au-dessus du canvas 3D */
+  white-space: nowrap;                  /* empêche le retour à la ligne du contenu */
+}
 
-      #speed-control label {
-        opacity: 0.75;
-        letter-spacing: 0.04em;
-      }
+/* Libellé "Vitesse", légèrement transparent et espacé pour un style discret */
+#speed-control label {
+  opacity: 0.75;
+  letter-spacing: 0.04em;
+}
 
-      #speed-slider {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 160px;
-        height: 4px;
-        border-radius: 2px;
-        background: rgba(0, 200, 255, 0.2);
-        outline: none;
-        cursor: pointer;
-      }
+/* Curseur (slider) de vitesse : style personnalisé remplaçant l'apparence native du navigateur */
+#speed-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 160px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 200, 255, 0.2);  /* piste du slider en cyan translucide */
+  outline: none;
+  cursor: pointer;
+}
 
-      #speed-slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: #00ccff;
-        box-shadow: 0 0 6px rgba(0, 200, 255, 0.7);
-        cursor: pointer;
-        transition: box-shadow 0.15s;
-      }
+/* Poignée du slider sous Chrome/Edge/Safari (WebKit) : petit rond cyan lumineux */
+#speed-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #00ccff;
+  box-shadow: 0 0 6px rgba(0, 200, 255, 0.7); /* halo lumineux autour de la poignée */
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
 
-      #speed-slider::-webkit-slider-thumb:hover {
-        box-shadow: 0 0 10px rgba(0, 200, 255, 1);
-      }
+/* Halo plus intense au survol de la poignée (retour visuel d'interaction) */
+#speed-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 10px rgba(0, 200, 255, 1);
+}
 
-      #speed-slider::-moz-range-thumb {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        border: none;
-        background: #00ccff;
-        box-shadow: 0 0 6px rgba(0, 200, 255, 0.7);
-        cursor: pointer;
-      }
+/* Équivalent de la poignée du slider pour Firefox */
+#speed-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: #00ccff;
+  box-shadow: 0 0 6px rgba(0, 200, 255, 0.7);
+  cursor: pointer;
+}
 
-      #speed-value {
-        min-width: 44px;
-        text-align: right;
-        color: #00ccff;
-        font-weight: bold;
-        font-size: 14px;
-      }
+/* Affichage textuel de la vitesse courante (ex: "×1.5"), aligné à droite avec largeur minimale fixe
+   pour éviter que le panneau ne "tremble" quand le nombre de chiffres change */
+#speed-value {
+  min-width: 44px;
+  text-align: right;
+  color: #00ccff;
+  font-weight: bold;
+  font-size: 14px;
+}

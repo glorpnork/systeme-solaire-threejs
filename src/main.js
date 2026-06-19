@@ -11,11 +11,12 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.xr.enabled = true;
+renderer.xr.enabled = true; // active le support WebXR (VR)
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 document.body.appendChild(VRButton.createButton(renderer));
 
+// En VR, on déplace ce groupe plutôt que la caméra (pilotée par le casque)
 const cameraRig = new THREE.Group();
 cameraRig.add(camera);
 scene.add(cameraRig);
@@ -49,6 +50,7 @@ if (speedSlider && speedValue) {
 const soleil = createSoleil(scene);
 const planeteObjects = planetsData.map(data => createPlanet(scene, data));
 
+// Tous les meshes cliquables, utilisés par le raycasting
 const interactiveMeshes = [soleil, ...planeteObjects.map(p => p.mesh)];
 
 const interaction = setupInteraction(renderer, scene, camera, cameraRig, interactiveMeshes, controls, speedState);
@@ -59,10 +61,10 @@ renderer.setAnimationLoop(() => {
   soleil.rotation.y += 0.002 * currentSpeedMultiplier;
 
   planeteObjects.forEach(planete => {
-    planete.pivot.rotation.y += planete.speed * currentSpeedMultiplier;
-    planete.mesh.rotation.y += 0.01 * currentSpeedMultiplier;
+    planete.pivot.rotation.y += planete.speed * currentSpeedMultiplier; // révolution autour du Soleil
+    planete.mesh.rotation.y += 0.01 * currentSpeedMultiplier;            // rotation propre
     planete.moons.forEach(moon => {
-      moon.pivot.rotation.y += moon.speed * currentSpeedMultiplier;
+      moon.pivot.rotation.y += moon.speed * currentSpeedMultiplier;      // révolution autour de la planète
     });
   });
 

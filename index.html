@@ -2,17 +2,23 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
+    <!-- Rend la page responsive : largeur = largeur de l'écran, pas de zoom initial -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Système Solaire</title>
+    <!-- Feuille de style définissant l'apparence du fond et du contrôle de vitesse -->
     <link rel="stylesheet" href="./je_sais_pas.css">
   </head>
   <body>
+    <!-- Petit panneau flottant en bas à gauche permettant de régler la vitesse de simulation -->
     <div id="speed-control">
       <label for="speed-slider">Vitesse</label>
+      <!-- Curseur de vitesse : de 0 (pause) à 5 (×5), pas de 0.05, valeur initiale ×1 -->
       <input id="speed-slider" type="range" min="0" max="5" step="0.05" value="1" />
+      <!-- Affichage texte de la valeur courante (mis à jour par main.js), ex: "×1.0" -->
       <span id="speed-value">×1.0</span>
     </div>
 
+    <!-- Point d'entrée de l'application : module JS qui construit toute la scène 3D -->
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>
